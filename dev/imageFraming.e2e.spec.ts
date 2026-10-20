@@ -115,6 +115,14 @@ test.describe('Image framing', () => {
     // The preview shows the hero's desktop frame with the text area on its left.
     await expect(drawer.locator('[data-framing-preview="md"] [data-cover="left"]')).toBeVisible()
 
+    // The buttons don't sit flush on the window's edge once the drawer scrolls.
+    const spaceBelowButtons = await drawer.evaluate(
+      (el) =>
+        el.getBoundingClientRect().bottom -
+        el.querySelector('[data-framing-actions]')!.getBoundingClientRect().bottom,
+    )
+    expect(spaceBelowButtons).toBeGreaterThanOrEqual(32)
+
     // Only the right half of the photo for this hero.
     await drawer.locator('[data-framing-input="crop.x"]').fill('50')
     await drawer.locator('[data-framing-input="crop.width"]').fill('50')
@@ -139,5 +147,43 @@ test.describe('Image framing', () => {
       expect(await redPixelsInHeroImage(site)).toBe(0)
       await site.context().close()
     }
+  })
+
+  // The media crop (10-100%, from the first test) is only the default: a block
+  // may show more of the photo, here the red strip the media crop leaves out.
+  test('lets a block crop wider than the media crop', async ({ browser }) => {
+    const admin = await (await browser.newContext({ viewport: { width: 1440, height: 1000 } })).newPage()
+    await login({ page: admin, user: testUser })
+    await admin.goto(`http://localhost:3000/admin/collections/pages/${pageId}`)
+
+    await admin
+      .locator('[data-image-framing-usage]')
+      .first()
+      .getByRole('button', { name: /adjust the framing/i })
+      .click()
+    const drawer = admin.locator('[data-image-framing-drawer]')
+    await expect(drawer).toBeVisible()
+
+    const x = drawer.locator('[data-framing-input="crop.x"]')
+    const width = drawer.locator('[data-framing-input="crop.width"]')
+    await x.fill('0')
+    await width.fill('95')
+    // Not pulled back to the media crop's left edge at 10%.
+    await expect(x).toHaveValue('0')
+    await expect(width).toHaveValue('95')
+    await drawer.getByRole('button', { name: 'Done' }).click()
+
+    await admin.click('#action-save')
+    await expect(admin.getByText(/updated successfully/i).first()).toBeVisible({ timeout: 30_000 })
+
+    const site = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage()
+    await expect(async () => {
+      await site.goto(pageURL)
+      expect(
+        await site.locator('[data-hero="full-bleed"] img').evaluate((el: HTMLImageElement) => el.currentSrc),
+      ).toContain(encodeURIComponent(`/api/media/crop/${mediaId}/0-0-9500-10000.`))
+    }).toPass({ timeout: 30_000 })
+    expect(await redPixelsInHeroImage(site)).toBeGreaterThan(0)
+    await site.context().close()
   })
 })

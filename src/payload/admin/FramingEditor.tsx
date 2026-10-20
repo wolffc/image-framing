@@ -39,10 +39,10 @@ export const FramingEditor: React.FC<{ previewShapes?: PreviewFrame[] }> = ({ pr
     <div className="field-type" data-image-framing-editor style={{ marginBottom: 'var(--spacing-field)' }}>
       <FieldLabel label="Crop and focus area" />
       <p style={{ color: 'var(--theme-elevation-500)', margin: '0 0 12px' }}>
-        The <strong>crop area</strong> (solid frame) is the only part of the photo the site
-        shows, in every size and shape. The <strong>focus area</strong> (dashed frame) is the
-        subject: the site keeps it in view and away from text. The original file stays as it
-        is, so you can widen the crop again later. Blocks can narrow this crop for themselves.
+        The <strong>crop area</strong> (solid frame) is the part of the photo the site shows,
+        in every size and shape. The <strong>focus area</strong> (dashed frame) is the subject:
+        the site keeps it in view and away from text. The original file stays as it is, so you
+        can widen the crop again later. A block can set its own crop, narrower or wider.
       </p>
 
       {url ? (

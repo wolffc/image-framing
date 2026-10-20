@@ -154,7 +154,9 @@ describe('Image framing', () => {
       expect((await requestCrop(resource.url)).status).toBe(404)
     })
 
-    it('refuses a crop wider than the media crop', async () => {
+    // A block may show more than the media crop (#316 part 2), so any signed
+    // rect inside the photo is served; the signature keeps out made-up ones.
+    it('serves a signed crop outside the media crop, as a block may use one', async () => {
       const wider = frameImage({
         media: { ...media, crop: { x: 0, y: 0, width: 100, height: 100 } },
         secret: process.env.PAYLOAD_SECRET!,
@@ -166,7 +168,9 @@ describe('Image framing', () => {
         media: { ...media, crop: { x: 0, y: 0, width: 50, height: 100 } },
         secret: process.env.PAYLOAD_SECRET!,
       })
-      expect((await requestCrop(left.resource.url)).status).toBe(404)
+      const response = await requestCrop(left.resource.url)
+      expect(response.status).toBe(200)
+      expect(await maxRed(Buffer.from(await response.arrayBuffer()))).toBeGreaterThan(200)
     })
 
     it('refuses a crop outside the photo', async () => {
@@ -183,8 +187,8 @@ describe('Image framing', () => {
 
 /**
  * Per-usage overrides (#316, part 2): a page's hero and blocks store their own
- * crop and focus area, cut down to the media crop, and the page serves a copy
- * of exactly that crop.
+ * crop and focus area, narrower or wider than the media crop, and the page
+ * serves a copy of exactly that crop.
  */
 describe('Image framing overrides', () => {
   const slug = `framing-int-overrides-${Date.now()}`
@@ -241,6 +245,12 @@ describe('Image framing overrides', () => {
             // Reaches into the red half, which the media crop partly excludes.
             imageFraming: { crop: { x: 0, y: 0, width: 60, height: 100 } },
           },
+          {
+            blockType: 'mediaBlock',
+            media: photo.id,
+            // Leaves the photo on the right: saved clamped into the photo.
+            imageFraming: { crop: { x: 50, y: 0, width: 80, height: 100 } },
+          },
         ],
       } as never,
     })
@@ -282,10 +292,33 @@ describe('Image framing overrides', () => {
     expect(page.hero.imageFraming?.crop).toMatchObject({ x: 50, y: 0, width: 50, height: 100 })
   })
 
-  it('stores a block override cut down to the media crop', () => {
+  it('stores a block override wider than the media crop as it was set', () => {
     const cta = page.layout[0] as { imageFraming?: { crop?: unknown } }
 
-    expect(cta.imageFraming?.crop).toMatchObject({ x: 25, y: 0, width: 35, height: 100 })
+    expect(cta.imageFraming?.crop).toMatchObject({ x: 0, y: 0, width: 60, height: 100 })
+  })
+
+  it('stores a block override that leaves the photo clamped into it', () => {
+    const block = page.layout[1] as { imageFraming?: { crop?: unknown } }
+
+    expect(block.imageFraming?.crop).toMatchObject({ x: 20, y: 0, width: 80, height: 100 })
+  })
+
+  it('serves a block crop wider than the media crop, including what the media crop leaves out', async () => {
+    const cta = page.layout[0] as { imageFraming?: Page['hero']['imageFraming'] }
+    const { resource } = frameImage({
+      media: photo,
+      override: cta.imageFraming,
+      secret: process.env.PAYLOAD_SECRET!,
+    })
+    const response = await requestCrop(resource.url)
+
+    expect(response.status).toBe(200)
+    const body = Buffer.from(await response.arrayBuffer())
+    const { width, height } = await sharp(body).metadata()
+    // 0-60% of the 1600px photo, while the media crop starts at 25%.
+    expect([width, height]).toEqual([960, 800])
+    expect(await maxRed(body)).toBeGreaterThan(200)
   })
 
   it('serves exactly the hero crop, without a red pixel', async () => {

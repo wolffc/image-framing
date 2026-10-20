@@ -1,7 +1,7 @@
 import type { CollectionSlug, Endpoint } from 'payload'
 import sharp from 'sharp'
 
-import { isRectInside, readCropToken, resolveFraming } from '../core'
+import { readCropToken } from '../core'
 
 import { type MediaDoc, toPixels } from './sizes'
 import type { FramingStorage } from './storage'
@@ -12,8 +12,9 @@ const notFound = () => new Response('Not found', { status: 404 })
 
 /**
  * Serves a copy of a media item cut to a signed crop rect, e.g.
- * `/api/media/crop/7/5000-0-5000-10000.<sig>/beach.jpg`. The rect must lie
- * inside the media's own crop area, so nothing the editor cropped away can be
+ * `/api/media/crop/7/5000-0-5000-10000.<sig>/beach.jpg`. Any rect inside the
+ * photo is allowed, since a block's own crop may be wider than the media's,
+ * but only with the server's signature, so only crops the site renders can be
  * requested. Copies are cached; the URL changes with every new version of the
  * media, so they can be cached forever downstream too.
  */
@@ -34,13 +35,13 @@ export const cropEndpoint = ({
 
     const doc = (await req.payload
       .findByID({ collection, id, depth: 0, overrideAccess: false, req })
-      .catch(() => null)) as (MediaDoc & Parameters<typeof resolveFraming>[0]) | null
+      .catch(() => null)) as MediaDoc | null
     if (!doc?.filename || !doc.width || !doc.height || !doc.mimeType?.startsWith('image/')) {
       return notFound()
     }
 
     const rect = readCropToken(token, { id: doc.id, secret, updatedAt: doc.updatedAt })
-    if (!rect || !isRectInside(rect, resolveFraming(doc).crop)) return notFound()
+    if (!rect) return notFound()
 
     const headers = {
       'Cache-Control': 'public, max-age=31536000, immutable',

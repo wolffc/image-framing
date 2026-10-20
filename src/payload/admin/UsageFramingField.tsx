@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react'
 
 // Not '../../core': its index also exports the URL signing, which needs Node's crypto.
 import { type FrameRule, matchFrames } from '../../core/frame'
-import { isCompleteRect, resolveFraming, type StoredRect } from '../../core/rect'
+import { FULL_RECT, isCompleteRect, resolveFraming, type StoredRect } from '../../core/rect'
 
 import { FramingCanvas } from './FramingCanvas'
 import { type PreviewFrame, PreviewStrip } from './PreviewStrip'
@@ -50,7 +50,8 @@ const useSiblingValues = (prefix: string): Record<string, unknown> => {
 
 /**
  * One usage's own crop and focus area (#316): a summary, and a drawer with the
- * editor (limited to the media's crop) and a preview in the usage's frames.
+ * editor (the whole photo, with the media's crop outlined as the default) and
+ * a preview in the usage's frames.
  * Empty means "as on the media".
  */
 export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
@@ -121,18 +122,20 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
       </div>
 
       <Drawer slug={drawerSlug} title="Framing for this block">
-        <div data-image-framing-drawer>
+        {/* Room below the buttons, so they don't sit on the window's edge when the drawer scrolls. */}
+        <div data-image-framing-drawer style={{ paddingBottom: 48 }}>
           <p style={{ color: 'var(--theme-elevation-500)', marginTop: 0 }}>
-            Narrow the crop and move the focus area for this block only. The crop stays inside
-            the crop set on the image in Media (the lighter area; the darkest part is cut off for every block). The preview shows this
-            block&apos;s frames, with the parts its text covers hatched.
+            Set the crop and focus area for this block only. The crop can be narrower or wider
+            than the one set on the image in Media (dotted outline), up to the whole photo. The
+            preview shows this block&apos;s frames, with the parts its text covers hatched.
           </p>
           {media?.url && framing && mediaFraming ? (
             <>
               <FramingCanvas
                 crop={framing.crop}
                 focus={framing.focus}
-                limit={mediaFraming.crop}
+                limit={FULL_RECT}
+                reference={mediaFraming.crop}
                 onChange={(next) => {
                   cropField.set(next.crop)
                   focusField.set(next.focus)
@@ -150,7 +153,7 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
           ) : (
             <p>Loading the image…</p>
           )}
-          <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+          <div data-framing-actions style={{ display: 'flex', gap: 12, marginTop: 24 }}>
             <button
               className="btn btn--style-primary btn--size-medium"
               onClick={() => closeModal(drawerSlug)}

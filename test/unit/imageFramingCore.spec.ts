@@ -269,9 +269,9 @@ describe('resolveFraming', () => {
 })
 
 /**
- * Per-usage overrides (#316, part 2): a block may narrow the media's crop and
- * move the focus area, but never show more than the media crop allows, even
- * when the media crop is narrowed after the override was saved.
+ * Per-usage overrides (#316, part 2): a block has its own crop and focus area.
+ * The media's crop is only the default: a block may show less of the photo, or
+ * more, up to the whole photo, e.g. the full width when the media crop is half.
  */
 describe('resolveFraming with an override', () => {
   const media = {
@@ -288,16 +288,29 @@ describe('resolveFraming with an override', () => {
     expect(resolveFraming(media, { crop, focusArea })).toEqual({ crop, focus: focusArea })
   })
 
-  it('cuts an override crop down to the media crop', () => {
-    const { crop } = resolveFraming(media, { crop: { x: 0, y: 0, width: 50, height: 100 } })
+  it('uses an override crop wider than the media crop, up to the whole photo', () => {
+    const wider = { x: 0, y: 0, width: 50, height: 100 }
 
-    expect(crop).toEqual({ x: 10, y: 0, width: 40, height: 100 })
+    expect(resolveFraming(media, { crop: wider }).crop).toEqual(wider)
+    expect(resolveFraming(media, { crop: FULL_RECT }).crop).toEqual(FULL_RECT)
   })
 
-  it('falls back to the media crop when the override lies outside it', () => {
-    const { crop } = resolveFraming(media, { crop: { x: 92, y: 0, width: 8, height: 100 } })
+  it('uses an override crop that lies outside the media crop', () => {
+    const outside = { x: 92, y: 0, width: 8, height: 100 }
+
+    expect(resolveFraming(media, { crop: outside }).crop).toEqual(outside)
+  })
+
+  it('ignores an override crop that leaves the photo', () => {
+    const { crop } = resolveFraming(media, { crop: { x: 60, y: 0, width: 60, height: 100 } })
 
     expect(crop).toEqual(media.crop)
+  })
+
+  it('keeps the media focus area when a wider override crop contains it', () => {
+    const { focus } = resolveFraming(media, { crop: FULL_RECT })
+
+    expect(focus).toEqual(media.focusArea)
   })
 
   it('keeps the media focus area, inside the override crop, without an override focus area', () => {

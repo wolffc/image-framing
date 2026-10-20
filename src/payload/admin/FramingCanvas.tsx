@@ -57,8 +57,10 @@ export const percentBox = (rect: Rect): React.CSSProperties => ({
 export interface FramingCanvasProps {
   /** The original photo. */
   url: string
-  /** The crop may not leave this rect: the whole photo, or the media crop for one usage. */
+  /** The crop may not leave this rect, usually the whole photo. */
   limit: Rect
+  /** Drawn as a dotted outline for orientation, e.g. the media crop in a block's editor. */
+  reference?: Rect
   crop: Rect
   focus: Rect
   onChange: (framing: { crop: Rect; focus: Rect }) => void
@@ -69,7 +71,14 @@ export interface FramingCanvasProps {
  * resize, plus number fields for both. Everything outside the crop is dimmed,
  * and outside `limit`, where the crop cannot go, it is darker still.
  */
-export const FramingCanvas: React.FC<FramingCanvasProps> = ({ crop, focus, limit, onChange, url }) => {
+export const FramingCanvas: React.FC<FramingCanvasProps> = ({
+  crop,
+  focus,
+  limit,
+  onChange,
+  reference,
+  url,
+}) => {
   const box = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState<{
     handle: Handle
@@ -122,6 +131,18 @@ export const FramingCanvas: React.FC<FramingCanvasProps> = ({ crop, focus, limit
             pointerEvents: 'none',
           }}
         />
+        {reference && (
+          <div
+            aria-hidden="true"
+            data-framing-rect="reference"
+            style={{
+              ...percentBox(reference),
+              outline: '2px dotted var(--theme-warning-500)',
+              outlineOffset: -2,
+              pointerEvents: 'none',
+            }}
+          />
+        )}
         <div
           data-framing-rect="crop"
           onPointerDown={onPointerDown('crop', 'move')}

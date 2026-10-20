@@ -1,13 +1,6 @@
-import type { Block, CollectionSlug, Config, Field, FieldHook, GroupField, UploadField } from 'payload'
+import type { Block, Config, Field, FieldHook, GroupField, UploadField } from 'payload'
 
-import {
-  type FrameRule,
-  type FramingOverride,
-  type FramingSource,
-  isCompleteRect,
-  normalizeRect,
-  resolveFraming,
-} from '../core'
+import { type FrameRule, type FramingOverride, FULL_RECT, isCompleteRect, normalizeRect } from '../core'
 
 import { rectField } from './fields'
 
@@ -20,33 +13,18 @@ export interface UsageOptions {
 const EMPTY = { x: null, y: null, width: null, height: null }
 
 /**
- * Cuts a saved override down to the media crop and keeps its focus area inside
- * the resulting crop, so stored data never asks for more than the media allows.
+ * Keeps a saved override inside the photo, and its focus area inside its crop.
+ * The crop may be narrower or wider than the media's: that is only the default.
  */
-const clampOverride =
-  (uploadField: string, relationTo: string): FieldHook =>
-  async ({ req, siblingData, value }) => {
-    const override = value as FramingOverride
-    if (!override) return value
-    const hasCrop = isCompleteRect(override.crop)
-    const hasFocus = isCompleteRect(override.focusArea)
-    if (!hasCrop && !hasFocus) return { ...override, crop: EMPTY, focusArea: EMPTY }
-
-    const ref = siblingData?.[uploadField] as { id?: number | string } | number | string | null
-    const id = ref && typeof ref === 'object' ? ref.id : ref
-    if (id == null) return value
-    const media = (await req.payload
-      .findByID({ collection: relationTo as CollectionSlug, depth: 0, id, req })
-      .catch(() => null)) as FramingSource | null
-    if (!media) return value
-
-    const { crop } = resolveFraming(media, override)
-    return {
-      ...override,
-      crop: hasCrop ? normalizeRect(crop) : EMPTY,
-      focusArea: hasFocus && isCompleteRect(override.focusArea) ? normalizeRect(override.focusArea, crop) : EMPTY,
-    }
-  }
+const clampOverride: FieldHook = ({ value }) => {
+  const override = value as FramingOverride
+  if (!override) return value
+  const crop = isCompleteRect(override.crop) ? normalizeRect(override.crop) : null
+  const focusArea = isCompleteRect(override.focusArea)
+    ? normalizeRect(override.focusArea, crop ?? FULL_RECT)
+    : null
+  return { ...override, crop: crop ?? EMPTY, focusArea: focusArea ?? EMPTY }
+}
 
 /** The `imageFraming` group added after a framed upload field. */
 const overrideGroup = (field: UploadField, usage: UsageOptions, componentPath: string): GroupField => {
@@ -62,7 +40,7 @@ const overrideGroup = (field: UploadField, usage: UsageOptions, componentPath: s
         Boolean(siblingData?.[field.name]) && (uploadCondition?.(data, siblingData, context) ?? true),
       hideGutter: true,
     },
-    hooks: { beforeChange: [clampOverride(field.name, relationTo)] },
+    hooks: { beforeChange: [clampOverride] },
     fields: [
       {
         name: 'editor',

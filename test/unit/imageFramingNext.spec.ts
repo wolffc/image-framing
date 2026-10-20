@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { cropToken, readCropToken } from '../../src/plugins/imageFraming/core'
+import { cropToken, FULL_RECT, readCropToken } from '../../src/plugins/imageFraming/core'
 import { frameImage } from '../../src/plugins/imageFraming/next'
 
 /**
@@ -124,15 +124,23 @@ describe('frameImage with an override', () => {
     expect([resource.width, resource.height]).toEqual([600, 500])
   })
 
-  it('never serves more than the media crop', () => {
+  // The media crop (50-100%) is only the default; a block may show more.
+  it('serves an override crop wider than the media crop', () => {
     const { resource } = frameImage({
       media: cropped,
-      override: { crop: { x: 0, y: 0, width: 100, height: 100 } },
+      override: { crop: { x: 0, y: 0, width: 75, height: 100 } },
       secret,
     })
 
-    expect(resource.url).toMatch(/\/5000-0-5000-10000\./)
-    expect([resource.width, resource.height]).toEqual([1500, 1000])
+    expect(resource.url).toMatch(/\/0-0-7500-10000\./)
+    expect([resource.width, resource.height]).toEqual([2250, 1000])
+  })
+
+  it('serves the original for an override showing the whole photo', () => {
+    const { resource } = frameImage({ media: cropped, override: { crop: FULL_RECT }, secret })
+
+    expect(resource.url).toBe('/api/media/file/beach.jpg')
+    expect([resource.width, resource.height]).toEqual([3000, 1000])
   })
 
   it('changes nothing with an empty override', () => {
