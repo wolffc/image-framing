@@ -29,7 +29,7 @@ const panorama = () =>
     .toBuffer()
 
 /** Seeds the panorama and a page with a Full-bleed hero (text on the left) showing it. */
-export async function seedImageFramingTestPage(): Promise<number> {
+export async function seedImageFramingTestPage(): Promise<{ mediaId: number; pageId: number }> {
   await cleanupImageFramingTestPage()
   const payload = await getPayload({ config })
 
@@ -40,7 +40,7 @@ export async function seedImageFramingTestPage(): Promise<number> {
     file: { data, mimetype: 'image/png', name: 'e2e-image-framing.png', size: data.length },
   })
 
-  await payload.create({
+  const page = await payload.create({
     collection: 'pages',
     locale: 'en',
     context: { disableRevalidate: true },
@@ -84,7 +84,7 @@ export async function seedImageFramingTestPage(): Promise<number> {
     },
   })
 
-  return media.id as number
+  return { mediaId: media.id as number, pageId: page.id as number }
 }
 
 export async function cleanupImageFramingTestPage(): Promise<void> {

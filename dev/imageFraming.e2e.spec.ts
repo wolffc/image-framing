@@ -36,14 +36,17 @@ const redPixelsInHeroImage = (page: Page) =>
   })
 
 test.describe('Image framing', () => {
+  // The hero override builds on the media crop set by the first test.
+  test.describe.configure({ mode: 'serial' })
   // The admin panel, a save that rebuilds the sizes and two page loads.
   test.setTimeout(120_000)
 
   let mediaId: number
+  let pageId: number
 
   test.beforeAll(async () => {
     await seedTestUser(testUser)
-    mediaId = await seedImageFramingTestPage()
+    ;({ mediaId, pageId } = await seedImageFramingTestPage())
   })
 
   test.afterAll(async () => {
@@ -92,6 +95,48 @@ test.describe('Image framing', () => {
       const position = await img.evaluate((el) => getComputedStyle(el).objectPosition)
       expect(position, `object-position at ${viewport.width}px`).toMatch(/^100% /)
 
+      await site.context().close()
+    }
+  })
+
+  // #316 part 2: the hero's own crop, set in a drawer on the page, with a
+  // preview of the hero's frames and the part its text covers.
+  test('sets a crop for the hero only and shows it on the site', async ({ browser }) => {
+    const admin = await (await browser.newContext({ viewport: { width: 1440, height: 1000 } })).newPage()
+    await login({ page: admin, user: testUser })
+    await admin.goto(`http://localhost:3000/admin/collections/pages/${pageId}`)
+
+    const usage = admin.locator('[data-image-framing-usage]').first()
+    await expect(usage).toContainText('Default framing')
+    await usage.getByRole('button', { name: /adjust the framing/i }).click()
+
+    const drawer = admin.locator('[data-image-framing-drawer]')
+    await expect(drawer).toBeVisible()
+    // The preview shows the hero's desktop frame with the text area on its left.
+    await expect(drawer.locator('[data-framing-preview="md"] [data-cover="left"]')).toBeVisible()
+
+    // Only the right half of the photo for this hero.
+    await drawer.locator('[data-framing-input="crop.x"]').fill('50')
+    await drawer.locator('[data-framing-input="crop.width"]').fill('50')
+    await drawer.getByRole('button', { name: 'Done' }).click()
+    await expect(usage).toContainText('Custom framing')
+
+    await admin.click('#action-save')
+    await expect(admin.getByText(/updated successfully/i).first()).toBeVisible({ timeout: 30_000 })
+
+    for (const viewport of [
+      { width: 390, height: 844 },
+      { width: 1440, height: 900 },
+    ]) {
+      const site = await (await browser.newContext({ viewport })).newPage()
+      // revalidatePath applies after the save response; retry until the new page is served.
+      await expect(async () => {
+        await site.goto(pageURL)
+        expect(
+          await site.locator('[data-hero="full-bleed"] img').evaluate((el: HTMLImageElement) => el.currentSrc),
+        ).toContain(encodeURIComponent(`/api/media/crop/${mediaId}/5000-0-5000-10000.`))
+      }).toPass({ timeout: 30_000 })
+      expect(await redPixelsInHeroImage(site)).toBe(0)
       await site.context().close()
     }
   })

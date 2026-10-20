@@ -15,12 +15,12 @@ export const rectField = (name: string, label: string): GroupField => ({
 })
 
 /** The crop and focus area fields plus the editor that sets them. */
-export const mediaFramingFields = (editorPath: string): Field[] => [
+export const mediaFramingFields = (editorPath: string, previewShapes: unknown[]): Field[] => [
   {
     name: 'framing',
     type: 'ui',
     label: 'Crop and focus area',
-    admin: { components: { Field: editorPath } },
+    admin: { components: { Field: { clientProps: { previewShapes }, path: editorPath } } },
   },
   rectField('crop', 'Crop area'),
   rectField('focusArea', 'Focus area'),

@@ -16,6 +16,48 @@ export interface Frame {
   cover?: CoverArea[]
 }
 
+/** The frame a layout shows the photo in on phones (`base`) and from its `md` breakpoint up. */
+export interface Frames {
+  base: Frame
+  md?: Frame
+}
+
+/**
+ * Which frames a usage shows, by the values of its sibling fields, e.g. the
+ * hero's layout: `{ when: { type: 'fullBleed', contentAlign: 'center' }, frames }`.
+ * Plain data, so the admin can use the same rules as the site.
+ */
+export interface FrameRule {
+  when: Record<string, string | readonly string[]>
+  frames: Frames
+}
+
+/** The frames of the first rule whose fields all match `data`. */
+export const matchFrames = (
+  rules: readonly FrameRule[] | undefined,
+  data: Record<string, unknown> | null | undefined,
+): Frames | undefined =>
+  data
+    ? rules?.find((rule) =>
+        Object.entries(rule.when).every(([field, expected]) =>
+          typeof expected === 'string' ? data[field] === expected : expected.includes(data[field] as string),
+        ),
+      )?.frames
+    : undefined
+
+/**
+ * Where to put the whole photo inside a preview box so the box shows exactly
+ * `visible`, in percent of the box (for an absolutely positioned `<img>`).
+ */
+export const previewPlacement = (
+  visible: Rect,
+): { left: number; top: number; width: number; height: number } => ({
+  left: -(visible.x / visible.width) * 100 || 0,
+  top: -(visible.y / visible.height) * 100 || 0,
+  width: (100 / visible.width) * 100,
+  height: (100 / visible.height) * 100,
+})
+
 export interface VisibleRectInput {
   /** Pixel size of the original photo, for its aspect ratio. */
   image: { width: number; height: number }

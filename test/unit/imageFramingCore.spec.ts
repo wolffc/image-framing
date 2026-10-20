@@ -3,10 +3,13 @@ import { describe, expect, it } from 'vitest'
 
 import {
   defaultFocusArea,
+  type FrameRule,
   FULL_RECT,
   isRectInside,
+  matchFrames,
   normalizeRect,
   objectPosition,
+  previewPlacement,
   resolveFraming,
   visibleRect,
 } from '../../src/plugins/imageFraming/core'
@@ -262,5 +265,98 @@ describe('resolveFraming', () => {
       resolveFraming({ crop: { x: 1, y: null, width: null, height: null }, focalX: 50, focalY: 50 })
         .crop,
     ).toEqual(FULL_RECT)
+  })
+})
+
+/**
+ * Per-usage overrides (#316, part 2): a block may narrow the media's crop and
+ * move the focus area, but never show more than the media crop allows, even
+ * when the media crop is narrowed after the override was saved.
+ */
+describe('resolveFraming with an override', () => {
+  const media = {
+    crop: { x: 10, y: 0, width: 80, height: 100 },
+    focusArea: { x: 40, y: 40, width: 20, height: 20 },
+    focalX: 50,
+    focalY: 50,
+  }
+
+  it('uses an override crop and focus area inside the media crop', () => {
+    const crop = { x: 20, y: 10, width: 40, height: 60 }
+    const focusArea = { x: 30, y: 30, width: 10, height: 10 }
+
+    expect(resolveFraming(media, { crop, focusArea })).toEqual({ crop, focus: focusArea })
+  })
+
+  it('cuts an override crop down to the media crop', () => {
+    const { crop } = resolveFraming(media, { crop: { x: 0, y: 0, width: 50, height: 100 } })
+
+    expect(crop).toEqual({ x: 10, y: 0, width: 40, height: 100 })
+  })
+
+  it('falls back to the media crop when the override lies outside it', () => {
+    const { crop } = resolveFraming(media, { crop: { x: 92, y: 0, width: 8, height: 100 } })
+
+    expect(crop).toEqual(media.crop)
+  })
+
+  it('keeps the media focus area, inside the override crop, without an override focus area', () => {
+    const framing = resolveFraming(media, { crop: { x: 50, y: 0, width: 40, height: 100 } })
+
+    expect(isRectInside(framing.focus, framing.crop)).toBe(true)
+    // The media focus area runs from 40% to 60%; clamped into a crop from 50%.
+    near(framing.focus.x, 50)
+  })
+
+  it('ignores an override focus area outside the crop', () => {
+    const framing = resolveFraming(media, {
+      crop: { x: 50, y: 0, width: 40, height: 100 },
+      focusArea: { x: 10, y: 10, width: 10, height: 10 },
+    })
+
+    expect(isRectInside(framing.focus, framing.crop)).toBe(true)
+  })
+
+  it('uses the media defaults for an empty override', () => {
+    const empty = {
+      crop: { x: null, y: null, width: null, height: null },
+      focusArea: { x: null, y: null, width: null, height: null },
+    }
+
+    expect(resolveFraming(media, empty)).toEqual(resolveFraming(media))
+    expect(resolveFraming(media, null)).toEqual(resolveFraming(media))
+  })
+})
+
+describe('matchFrames', () => {
+  const spec: FrameRule[] = [
+    { when: { type: 'fullBleed', contentAlign: 'center' }, frames: { base: { aspect: 2 } } },
+    { when: { type: 'fullBleed' }, frames: { base: { aspect: 3 } } },
+    { when: { type: ['split', 'route'] }, frames: { base: { aspect: 4 } } },
+  ]
+
+  it('picks the first rule whose fields all match', () => {
+    expect(matchFrames(spec, { type: 'fullBleed', contentAlign: 'center' })?.base.aspect).toBe(2)
+    expect(matchFrames(spec, { type: 'fullBleed', contentAlign: 'start' })?.base.aspect).toBe(3)
+  })
+
+  it('matches one of several values', () => {
+    expect(matchFrames(spec, { type: 'route' })?.base.aspect).toBe(4)
+  })
+
+  it('gives no frames when no rule matches', () => {
+    expect(matchFrames(spec, { type: 'editorial' })).toBeUndefined()
+    expect(matchFrames(spec, undefined)).toBeUndefined()
+  })
+})
+
+describe('previewPlacement', () => {
+  it('scales and shifts the photo so the box shows exactly the visible rect', () => {
+    expect(previewPlacement({ x: 25, y: 0, width: 50, height: 100 })).toEqual({
+      left: -50,
+      top: 0,
+      width: 200,
+      height: 100,
+    })
   })
 })

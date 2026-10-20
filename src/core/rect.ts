@@ -86,24 +86,48 @@ export interface Framing {
   focus: Rect
 }
 
+/** A usage's own crop and focus area (e.g. one block's); missing values mean "as on the media". */
+export type FramingOverride = { crop?: StoredRect; focusArea?: StoredRect } | null | undefined
+
+/** The part two rects share, or null when they share less than the smallest size. */
+export const intersectRects = (a: Rect, b: Rect): Rect | null => {
+  const x = Math.max(a.x, b.x)
+  const y = Math.max(a.y, b.y)
+  const width = Math.min(a.x + a.width, b.x + b.width) - x
+  const height = Math.min(a.y + a.height, b.y + b.height) - y
+  return width >= MIN_SIZE && height >= MIN_SIZE ? { x, y, width, height } : null
+}
+
+const pick = (rect: Rect): Rect => ({ x: rect.x, y: rect.y, width: rect.width, height: rect.height })
+
 /**
  * The crop and focus area to use for a media document. A missing or invalid
  * crop is the whole photo; a missing focus area, or one outside the crop, is
  * the default focus area around the focal point, kept inside the crop.
+ *
+ * With an `override` (one usage's own framing), its crop is cut down to the
+ * media crop, so a usage never shows more than the media allows, even after
+ * the media crop was narrowed. Its focus area applies when it lies inside the
+ * resulting crop; otherwise the media's focus area does, kept inside the crop.
  */
-export const resolveFraming = (source: FramingSource): Framing => {
+export const resolveFraming = (source: FramingSource, override?: FramingOverride): Framing => {
+  const mediaCrop =
+    isCompleteRect(source.crop) && isRectInside(source.crop, FULL_RECT) ? pick(source.crop) : FULL_RECT
+  const mediaFocus =
+    isCompleteRect(source.focusArea) && isRectInside(source.focusArea, mediaCrop)
+      ? pick(source.focusArea)
+      : defaultFocusArea(source.focalX, source.focalY, mediaCrop)
+  if (!override) return { crop: mediaCrop, focus: mediaFocus }
+
   const crop =
-    isCompleteRect(source.crop) && isRectInside(source.crop, FULL_RECT)
-      ? { x: source.crop.x, y: source.crop.y, width: source.crop.width, height: source.crop.height }
-      : FULL_RECT
-  const focus =
-    isCompleteRect(source.focusArea) && isRectInside(source.focusArea, crop)
-      ? {
-          x: source.focusArea.x,
-          y: source.focusArea.y,
-          width: source.focusArea.width,
-          height: source.focusArea.height,
-        }
-      : defaultFocusArea(source.focalX, source.focalY, crop)
+    (isCompleteRect(override.crop) && intersectRects(pick(override.crop), mediaCrop)) || mediaCrop
+  let focus: Rect
+  if (isCompleteRect(override.focusArea) && isRectInside(override.focusArea, crop)) {
+    focus = pick(override.focusArea)
+  } else if (isRectInside(mediaFocus, crop)) {
+    focus = mediaFocus
+  } else {
+    focus = normalizeRect(mediaFocus, crop)
+  }
   return { crop, focus }
 }

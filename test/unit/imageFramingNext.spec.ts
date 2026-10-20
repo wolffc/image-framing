@@ -111,6 +111,52 @@ describe('frameImage', () => {
   })
 })
 
+// #316 part 2: a block's own crop and focus area.
+describe('frameImage with an override', () => {
+  it('serves the override crop at its size', () => {
+    const { resource } = frameImage({
+      media: cropped,
+      override: { crop: { x: 60, y: 0, width: 20, height: 50 } },
+      secret,
+    })
+
+    expect(resource.url).toMatch(/^\/api\/media\/crop\/7\/6000-0-2000-5000\.[\w-]+\/beach\.jpg$/)
+    expect([resource.width, resource.height]).toEqual([600, 500])
+  })
+
+  it('never serves more than the media crop', () => {
+    const { resource } = frameImage({
+      media: cropped,
+      override: { crop: { x: 0, y: 0, width: 100, height: 100 } },
+      secret,
+    })
+
+    expect(resource.url).toMatch(/\/5000-0-5000-10000\./)
+    expect([resource.width, resource.height]).toEqual([1500, 1000])
+  })
+
+  it('changes nothing with an empty override', () => {
+    const empty = { crop: { x: null, y: null, width: null, height: null } }
+
+    expect(frameImage({ media: cropped, override: empty, secret })).toEqual(
+      frameImage({ media: cropped, secret }),
+    )
+  })
+
+  it('positions around the override focus area', () => {
+    const at = (x: number) =>
+      frameImage({
+        frames: { base: { aspect: 1 } },
+        media,
+        override: { focusArea: { x, y: 40, width: 10, height: 20 } },
+        secret,
+      }).style['--frame-pos']
+
+    expect(at(0)).toBe('0% 50%')
+    expect(at(90)).toBe('100% 50%')
+  })
+})
+
 describe('crop tokens', () => {
   const rect = { x: 12.5, y: 0, width: 50, height: 100 }
   const updatedAt = '2026-10-01T00:00:00.000Z'

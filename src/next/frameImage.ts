@@ -1,6 +1,8 @@
 import {
   cropToken,
   type Frame,
+  type Frames,
+  type FramingOverride,
   type FramingSource,
   isFullRect,
   objectPosition,
@@ -31,16 +33,14 @@ export interface FramedResource {
   width?: number | null
 }
 
-/** The frame a layout shows the photo in on phones (`base`) and from its `md` breakpoint up. */
-export interface Frames {
-  base: Frame
-  md?: Frame
-}
+export type { Frames }
 
 export interface FrameImageOptions {
   media: FrameableMedia
   /** Without frames the style is empty, e.g. for a photo shown in its own shape. */
   frames?: Frames
+  /** The usage's own crop and focus area, e.g. a block's `imageFraming`. */
+  override?: FramingOverride
   /** Signs the cropped-copy URLs; must be the plugin's `secret`. */
   secret: string
   /** Where the plugin serves cropped copies. */
@@ -75,6 +75,7 @@ export const cropUrl = (
 export const frameImage = ({
   frames,
   media,
+  override,
   routePrefix = DEFAULT_ROUTE_PREFIX,
   secret,
   variable = DEFAULT_VARIABLE,
@@ -88,7 +89,7 @@ export const frameImage = ({
   const isImage = !mimeType || mimeType.startsWith('image/')
   if (!isImage || !width || !height) return { resource, style: {} }
 
-  const { crop, focus } = resolveFraming(media)
+  const { crop, focus } = resolveFraming(media, override)
   if (!isFullRect(crop) && url) {
     resource.url = cropUrl(media, crop, secret, routePrefix)
     resource.width = Math.round((crop.width / 100) * width)

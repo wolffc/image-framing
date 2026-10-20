@@ -5,3 +5,4 @@
 export * from './plugin'
 export * from './storage'
 export { CROP_ENDPOINT_PATH } from './cropEndpoint'
+export type { UsageOptions } from './usages'

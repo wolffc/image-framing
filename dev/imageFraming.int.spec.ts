@@ -7,7 +7,7 @@ import sharp from 'sharp'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import config from '@/payload.config'
-import type { Media } from '@/payload-types'
+import type { Media, Page } from '@/payload-types'
 import { frameImage } from '@/plugins/imageFraming/next'
 
 /**
@@ -178,5 +178,128 @@ describe('Image framing', () => {
         }),
       ).rejects.toThrow()
     })
+  })
+})
+
+/**
+ * Per-usage overrides (#316, part 2): a page's hero and blocks store their own
+ * crop and focus area, cut down to the media crop, and the page serves a copy
+ * of exactly that crop.
+ */
+describe('Image framing overrides', () => {
+  const slug = `framing-int-overrides-${Date.now()}`
+  let photo: Media
+  let page: Page
+
+  const paragraph = {
+    root: {
+      type: 'root',
+      direction: 'ltr' as const,
+      format: '' as const,
+      indent: 0,
+      version: 1,
+      children: [
+        {
+          type: 'paragraph',
+          direction: 'ltr' as const,
+          format: '' as const,
+          indent: 0,
+          version: 1,
+          children: [{ type: 'text', text: 'Overrides.', version: 1 }],
+        },
+      ],
+    },
+  }
+
+  beforeAll(async () => {
+    payload = await getPayload({ config: await config })
+    const data = await redBlue()
+    photo = await payload.create({
+      collection: 'media',
+      data: { alt: 'Framing override int test', crop: { x: 25, y: 0, width: 75, height: 100 } },
+      file: { data, mimetype: 'image/png', name: `framing-override-${Date.now()}.png`, size: data.length },
+    })
+    page = await payload.create({
+      collection: 'pages',
+      context: { disableRevalidate: true },
+      data: {
+        title: 'Framing override int test',
+        slug,
+        _status: 'published',
+        hero: {
+          type: 'fullBleed',
+          media: photo.id,
+          // The blue half only.
+          imageFraming: { crop: { x: 50, y: 0, width: 50, height: 100 } },
+        },
+        layout: [
+          {
+            blockType: 'cta',
+            style: 'image',
+            media: photo.id,
+            richText: paragraph,
+            // Reaches into the red half, which the media crop partly excludes.
+            imageFraming: { crop: { x: 0, y: 0, width: 60, height: 100 } },
+          },
+        ],
+      } as never,
+    })
+  })
+
+  afterAll(async () => {
+    await payload.delete({ collection: 'pages', where: { slug: { equals: slug } }, context: { disableRevalidate: true } })
+    if (photo) await payload.delete({ collection: 'media', id: photo.id })
+  })
+
+  it('offers an override next to the image of every framed usage', () => {
+    // Paths of every `imageFraming` field, through tabs, groups, rows and blocks.
+    const paths = (fields: unknown[], prefix: string): string[] =>
+      fields.flatMap((field) => {
+        const f = field as {
+          blocks?: { slug: string; fields: unknown[] }[]
+          fields?: unknown[]
+          name?: string
+          tabs?: { fields: unknown[] }[]
+        }
+        const here = f.name ? `${prefix}${f.name}` : prefix.replace(/\.$/, '')
+        return [
+          ...(f.name === 'imageFraming' ? [here] : []),
+          ...(f.tabs ?? []).flatMap((tab) => paths(tab.fields, prefix)),
+          ...(f.fields ? paths(f.fields, f.name ? `${here}.` : prefix) : []),
+          ...(f.blocks ?? []).flatMap((block) => paths(block.fields, `${block.slug}.`)),
+        ]
+      })
+
+    expect(paths(payload.collections.pages.config.fields, '').sort()).toEqual([
+      'cta.imageFraming',
+      'editorialCard.imageFraming',
+      'hero.imageFraming',
+      'mediaBlock.imageFraming',
+    ])
+  })
+
+  it('stores the hero override as it was set', () => {
+    expect(page.hero.imageFraming?.crop).toMatchObject({ x: 50, y: 0, width: 50, height: 100 })
+  })
+
+  it('stores a block override cut down to the media crop', () => {
+    const cta = page.layout[0] as { imageFraming?: { crop?: unknown } }
+
+    expect(cta.imageFraming?.crop).toMatchObject({ x: 25, y: 0, width: 35, height: 100 })
+  })
+
+  it('serves exactly the hero crop, without a red pixel', async () => {
+    const { resource } = frameImage({
+      media: photo,
+      override: page.hero.imageFraming,
+      secret: process.env.PAYLOAD_SECRET!,
+    })
+    const response = await requestCrop(resource.url)
+
+    expect(response.status).toBe(200)
+    const body = Buffer.from(await response.arrayBuffer())
+    const { width, height } = await sharp(body).metadata()
+    expect([width, height]).toEqual([800, 800])
+    expect(await maxRed(body)).toBeLessThan(30)
   })
 })
