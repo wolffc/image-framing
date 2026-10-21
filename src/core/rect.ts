@@ -128,3 +128,14 @@ export const resolveFraming = (source: FramingSource, override?: FramingOverride
   }
   return { crop, focus }
 }
+
+/**
+ * `inner` in percent of `outer`, e.g. the focus area within the crop or within
+ * a frame's visible rect. Not clamped: parts outside `outer` stay outside 0-100.
+ */
+export const relativeRect = (inner: Rect, outer: Rect): Rect => ({
+  x: round(((inner.x - outer.x) / outer.width) * 100),
+  y: round(((inner.y - outer.y) / outer.height) * 100),
+  width: round((inner.width / outer.width) * 100),
+  height: round((inner.height / outer.height) * 100),
+})

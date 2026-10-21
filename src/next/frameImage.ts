@@ -6,6 +6,8 @@ import {
   type FramingSource,
   isFullRect,
   objectPosition,
+  type Rect,
+  relativeRect,
   resolveFraming,
   visibleRect,
 } from '../core'
@@ -52,6 +54,13 @@ export interface FrameImageOptions {
 export interface FramedImage {
   resource: FramedResource
   style: Record<string, string>
+  /**
+   * The focus area in percent of the served (cropped) image, for layouts that
+   * draw around the subject, e.g. a mask with a clear zone. Missing for files
+   * that aren't images or have no size. Derived on the server: keep it there or
+   * pass on only values computed from it, never the media's rects.
+   */
+  focus?: Rect
 }
 
 export const DEFAULT_ROUTE_PREFIX = '/api/media/crop'
@@ -107,5 +116,5 @@ export const frameImage = ({
     style[`${variable}-md`] = frames.md ? position(frames.md) : style[variable]
   }
 
-  return { resource, style }
+  return { focus: relativeRect(focus, crop), resource, style }
 }
