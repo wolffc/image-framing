@@ -1,6 +1,6 @@
 'use client'
 
-import { Drawer, DrawerToggler, useConfig, useDrawerSlug, useFormFields, useModal } from '@payloadcms/ui'
+import { Button, Drawer, useConfig, useDrawerSlug, useFormFields, useModal } from '@payloadcms/ui'
 import React, { useEffect, useState } from 'react'
 
 // Not '../../core': its index also exports the URL signing, which needs Node's crypto.
@@ -70,7 +70,7 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
   })
   const siblings = useSiblingValues(siblingPrefix)
   const { config } = useConfig()
-  const { closeModal } = useModal()
+  const { closeModal, openModal } = useModal()
   const drawerSlug = useDrawerSlug(`image-framing-${groupPath}`)
   // Keyed by id, so a stale document never shows after the image was swapped.
   const [loaded, setLoaded] = useState<{ doc: MediaDoc | null; id: unknown } | null>(null)
@@ -106,8 +106,16 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
     : []
 
   return (
-    <div className="field-type" data-image-framing-usage style={{ marginBottom: 'var(--spacing-field)' }}>
-      <div style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+    // Pulled up by half a field gap, so the row reads as part of the image above it.
+    <div
+      className="field-type"
+      data-image-framing-usage
+      style={{ marginTop: 'calc(var(--spacing-field) / -2)' }}
+    >
+      <div style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: '8px 12px' }}>
+        <Button buttonStyle="pill" margin={false} onClick={() => openModal(drawerSlug)} size="small">
+          Adjust the framing for this block
+        </Button>
         <span>
           <strong>{custom ? 'Custom framing' : 'Default framing'}</strong>{' '}
           <span style={{ color: 'var(--theme-elevation-500)' }}>
@@ -116,9 +124,6 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
               : 'The crop and focus area set on the image in Media.'}
           </span>
         </span>
-        <DrawerToggler className="btn btn--style-secondary btn--size-small" slug={drawerSlug}>
-          Adjust the framing for this block
-        </DrawerToggler>
       </div>
 
       <Drawer slug={drawerSlug} title="Framing for this block">
