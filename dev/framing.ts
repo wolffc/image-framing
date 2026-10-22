@@ -7,7 +7,10 @@ import type { FrameRule } from '@wolffc/payload-image-framing/core'
 export const heroFrames: FrameRule[] = [
   {
     when: { layout: 'fullBleed' },
-    frames: { base: { aspect: 4 / 5 }, md: { aspect: 21 / 9, cover: [{ edge: 'left', size: 45 }] } },
+    frames: {
+      base: { aspect: 4 / 5 },
+      md: { aspect: 21 / 9, cover: [{ edge: 'left', size: 45 }] },
+    },
   },
   { when: { layout: 'split' }, frames: { base: { aspect: 4 / 3 }, md: { aspect: 1 } } },
 ]

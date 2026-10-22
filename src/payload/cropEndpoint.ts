@@ -48,7 +48,9 @@ export const cropEndpoint = ({
       'Content-Type': doc.mimeType,
     }
     const files = storage(doc)
-    const extension = doc.filename.includes('.') ? doc.filename.slice(doc.filename.lastIndexOf('.')) : ''
+    const extension = doc.filename.includes('.')
+      ? doc.filename.slice(doc.filename.lastIndexOf('.'))
+      : ''
     const key = `${doc.id}-${token}${extension}`
 
     const cached = await files.readCached(key)

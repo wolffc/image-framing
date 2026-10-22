@@ -24,7 +24,9 @@ const importsOf = (file: string): string[] =>
   [
     ...fs
       .readFileSync(file, 'utf8')
-      .matchAll(/(?:import|export)\s[^'"]*?from\s+['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g),
+      .matchAll(
+        /(?:import|export)\s[^'"]*?from\s+['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g,
+      ),
   ].map((match) => match[1] ?? match[2])
 
 const files = fs.existsSync(moduleDir) ? sourceFiles(moduleDir) : []

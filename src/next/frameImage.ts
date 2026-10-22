@@ -90,7 +90,15 @@ export const frameImage = ({
   variable = DEFAULT_VARIABLE,
 }: FrameImageOptions): FramedImage => {
   const { alt, filename, height, mimeType, updatedAt, url, width } = media
-  const resource: FramedResource = { alt, filename, height, mimeType, updatedAt, url: url ?? '', width }
+  const resource: FramedResource = {
+    alt,
+    filename,
+    height,
+    mimeType,
+    updatedAt,
+    url: url ?? '',
+    width,
+  }
   for (const key of Object.keys(resource) as (keyof FramedResource)[]) {
     if (resource[key] === undefined) delete resource[key]
   }

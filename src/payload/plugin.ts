@@ -49,7 +49,8 @@ export interface ImageFramingPluginOptions {
 }
 
 const defaultStorage = (collection: CollectionConfig): FramingStorage => {
-  const staticDir = collection.upload && typeof collection.upload === 'object' && collection.upload.staticDir
+  const staticDir =
+    collection.upload && typeof collection.upload === 'object' && collection.upload.staticDir
   if (!staticDir) throw new Error(`imageFraming: collection "${collection.slug}" has no staticDir`)
   return localDiskStorage({ staticDir })
 }
@@ -81,7 +82,10 @@ export const imageFramingPlugin = ({
       // The original is never cropped or re-focused by Payload itself.
       upload: { ...upload, crop: false, focalPoint: false },
       fields: [...collection.fields, ...mediaFramingFields(editorPath, previewShapes)],
-      endpoints: [...(collection.endpoints || []), cropEndpoint({ collection: slug, secret, storage: files })],
+      endpoints: [
+        ...(collection.endpoints || []),
+        cropEndpoint({ collection: slug, secret, storage: files }),
+      ],
       hooks: {
         ...collection.hooks,
         beforeValidate: [...(collection.hooks?.beforeValidate ?? []), validateFraming(slug)],
@@ -99,7 +103,9 @@ export const imageFramingPlugin = ({
       {
         ...config,
         collections: (config.collections ?? []).map((collection) =>
-          collections.includes(collection.slug as CollectionSlug) ? withFraming(collection) : collection,
+          collections.includes(collection.slug as CollectionSlug)
+            ? withFraming(collection)
+            : collection,
         ),
       },
       usages,

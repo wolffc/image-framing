@@ -67,10 +67,17 @@ export const PreviewStrip: React.FC<{
                   }}
                 />
                 {frame.cover?.map((area) => (
-                  <span aria-hidden="true" data-cover={area.edge} key={area.edge} style={coverStyle(area)} />
+                  <span
+                    aria-hidden="true"
+                    data-cover={area.edge}
+                    key={area.edge}
+                    style={coverStyle(area)}
+                  />
                 ))}
               </div>
-              <figcaption style={{ color: 'var(--theme-elevation-500)', fontSize: 12, marginTop: 4 }}>
+              <figcaption
+                style={{ color: 'var(--theme-elevation-500)', fontSize: 12, marginTop: 4 }}
+              >
                 {label}
               </figcaption>
             </figure>

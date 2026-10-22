@@ -16,7 +16,9 @@ import { useRect } from './useRect.js'
  * every frame keeps in view where it can. Both are data: the original file is
  * never changed, so a crop can be widened again later.
  */
-export const FramingEditor: React.FC<{ previewShapes?: PreviewFrame[] }> = ({ previewShapes = [] }) => {
+export const FramingEditor: React.FC<{ previewShapes?: PreviewFrame[] }> = ({
+  previewShapes = [],
+}) => {
   const url = useFormFields(([fields]) => fields.url?.value as string | undefined)
   const width = useFormFields(([fields]) => fields.width?.value as number | undefined)
   const height = useFormFields(([fields]) => fields.height?.value as number | undefined)
@@ -36,13 +38,17 @@ export const FramingEditor: React.FC<{ previewShapes?: PreviewFrame[] }> = ({ pr
   })
 
   return (
-    <div className="field-type" data-image-framing-editor style={{ marginBottom: 'var(--spacing-field)' }}>
+    <div
+      className="field-type"
+      data-image-framing-editor
+      style={{ marginBottom: 'var(--spacing-field)' }}
+    >
       <FieldLabel label="Crop and focus area" />
       <p style={{ color: 'var(--theme-elevation-500)', margin: '0 0 12px' }}>
-        The <strong>crop area</strong> (solid frame) is the part of the photo the site shows,
-        in every size and shape. The <strong>focus area</strong> (dashed frame) is the subject:
-        the site keeps it in view and away from text. The original file stays as it is, so you
-        can widen the crop again later. A block can set its own crop, narrower or wider.
+        The <strong>crop area</strong> (solid frame) is the part of the photo the site shows, in
+        every size and shape. The <strong>focus area</strong> (dashed frame) is the subject: the
+        site keeps it in view and away from text. The original file stays as it is, so you can widen
+        the crop again later. A block can set its own crop, narrower or wider.
       </p>
 
       {url ? (

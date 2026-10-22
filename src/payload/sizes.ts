@@ -5,7 +5,12 @@ import { type Framing, visibleRect } from '../core/index.js'
 
 import type { FramingStorage } from './storage.js'
 
-type SizeData = { filename?: string | null; filesize?: number | null; height?: number | null; width?: number | null }
+type SizeData = {
+  filename?: string | null
+  filesize?: number | null
+  height?: number | null
+  width?: number | null
+}
 export type MediaDoc = TypeWithID &
   Partial<FileData> & { sizes?: Record<string, SizeData | undefined> | null; updatedAt?: string }
 

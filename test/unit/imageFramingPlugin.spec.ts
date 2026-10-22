@@ -26,7 +26,16 @@ const config = (): Config =>
           {
             type: 'tabs',
             tabs: [
-              { label: 'Hero', fields: [{ name: 'hero', type: 'group', fields: [{ name: 'type', type: 'text' }, upload('media')] }] },
+              {
+                label: 'Hero',
+                fields: [
+                  {
+                    name: 'hero',
+                    type: 'group',
+                    fields: [{ name: 'type', type: 'text' }, upload('media')],
+                  },
+                ],
+              },
               {
                 label: 'Content',
                 fields: [
@@ -69,8 +78,7 @@ const names = (fields: Field[]): string[] =>
   )
 
 const pages = (result: Config) => result.collections!.find((c) => c.slug === 'pages')!
-const tabs = (result: Config) =>
-  (pages(result).fields[0] as Extract<Field, { type: 'tabs' }>).tabs
+const tabs = (result: Config) => (pages(result).fields[0] as Extract<Field, { type: 'tabs' }>).tabs
 const heroFields = (result: Config) =>
   (tabs(result)[0].fields[0] as Extract<Field, { type: 'group' }>).fields
 const layoutBlocks = (result: Config) =>
@@ -112,7 +120,10 @@ describe('imageFramingPlugin usages', () => {
     ) as Extract<Field, { type: 'group' }>
 
     expect(names(group.fields)).toEqual(expect.arrayContaining(['crop', 'focusArea']))
-    const editor = group.fields.find((field) => field.type === 'ui') as Extract<Field, { type: 'ui' }>
+    const editor = group.fields.find((field) => field.type === 'ui') as Extract<
+      Field,
+      { type: 'ui' }
+    >
     const component = editor.admin!.components!.Field as { clientProps: Record<string, unknown> }
     expect(component.clientProps).toMatchObject({ frames: heroRules, uploadField: 'media' })
   })

@@ -89,7 +89,12 @@ export interface Framing {
 /** A usage's own crop and focus area (e.g. one block's); missing values mean "as on the media". */
 export type FramingOverride = { crop?: StoredRect; focusArea?: StoredRect } | null | undefined
 
-const pick = (rect: Rect): Rect => ({ x: rect.x, y: rect.y, width: rect.width, height: rect.height })
+const pick = (rect: Rect): Rect => ({
+  x: rect.x,
+  y: rect.y,
+  width: rect.width,
+  height: rect.height,
+})
 
 /**
  * The crop and focus area to use for a media document. A missing or invalid
@@ -104,7 +109,9 @@ const pick = (rect: Rect): Rect => ({ x: rect.x, y: rect.y, width: rect.width, h
  */
 export const resolveFraming = (source: FramingSource, override?: FramingOverride): Framing => {
   const mediaCrop =
-    isCompleteRect(source.crop) && isRectInside(source.crop, FULL_RECT) ? pick(source.crop) : FULL_RECT
+    isCompleteRect(source.crop) && isRectInside(source.crop, FULL_RECT)
+      ? pick(source.crop)
+      : FULL_RECT
   const mediaFocus =
     isCompleteRect(source.focusArea) && isRectInside(source.focusArea, mediaCrop)
       ? pick(source.focusArea)

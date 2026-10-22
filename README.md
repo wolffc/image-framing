@@ -12,16 +12,34 @@ Work in progress: being extracted from weflyhome.com into a standalone package. 
 
 ## Layout
 
-| Path | Contents | May import |
-| --- | --- | --- |
-| `src/core/` | Rect types and validation, override resolution (`resolveFraming(media, override)`), the framing algorithm (`visibleRect`, `objectPosition`), frame rules (`matchFrames`), preview placement, signed crop tokens | Nothing but itself and `node:crypto` |
-| `src/payload/` | `imageFramingPlugin()`, the fields, hooks, the cropped-copy route, the storage interface and the admin editor | `core/`, `payload`, `@payloadcms/ui`, `sharp`, `react` |
-| `src/next/` | `frameImage()`: a media doc, an optional override and frame shapes to the cropped URL and `object-position` CSS variables | `core/` |
-| `src/exports/` | Entry points that only re-export (`./client`) | |
-| `dev/` | A Payload + Next app for development and tests (SQLite) | the package by its name |
-| `test/unit/` | Vitest unit tests | |
+| Path           | Contents                                                                                                                                                                                                        | May import                                             |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `src/core/`    | Rect types and validation, override resolution (`resolveFraming(media, override)`), the framing algorithm (`visibleRect`, `objectPosition`), frame rules (`matchFrames`), preview placement, signed crop tokens | Nothing but itself and `node:crypto`                   |
+| `src/payload/` | `imageFramingPlugin()`, the fields, hooks, the cropped-copy route, the storage interface and the admin editor                                                                                                   | `core/`, `payload`, `@payloadcms/ui`, `sharp`, `react` |
+| `src/next/`    | `frameImage()`: a media doc, an optional override and frame shapes to the cropped URL and `object-position` CSS variables                                                                                       | `core/`                                                |
+| `src/exports/` | Entry points that only re-export (`./server`, `./client`)                                                                                                                                                       |                                                        |
+| `dev/`         | A Payload + Next app for development and tests (SQLite)                                                                                                                                                         | the package by its name                                |
+| `test/unit/`   | Vitest unit tests                                                                                                                                                                                               |                                                        |
+| `examples/`    | Example setups (to come)                                                                                                                                                                                        |                                                        |
+| `scripts/`     | `pack-smoke.sh`: packs the package and installs it into a scratch project                                                                                                                                       |                                                        |
 
-Entry points: `@wolffc/payload-image-framing` (plugin), `/core`, `/next`, `/client` (admin components). `test/unit/imageFramingBoundary.spec.ts` checks the import rules above.
+Entry points:
+
+| Import                                 | Contents                                                                           |
+| -------------------------------------- | ---------------------------------------------------------------------------------- |
+| `@wolffc/payload-image-framing`        | `imageFramingPlugin`, its options, `FramingStorage`, `localDiskStorage`            |
+| `@wolffc/payload-image-framing/core`   | The framing model and algorithm                                                    |
+| `@wolffc/payload-image-framing/server` | `frameImage`, `cropUrl`, `cropToken`/`readCropToken` (use the secret: server only) |
+| `@wolffc/payload-image-framing/client` | The admin components (`'use client'`)                                              |
+| `@wolffc/payload-image-framing/next`   | `frameImage`, as before; Next-specific helpers will live here                      |
+
+`test/unit/imageFramingBoundary.spec.ts` checks the import rules above.
+
+## Requirements
+
+- Payload `^3.39.0` (3.39 is the lowest version CI checks) with `sharp` in the Payload config
+- React 19; Next.js 15.2.3+ or 16 for the admin panel
+- Node.js 20.18.1 or later
 
 ## Development
 
@@ -32,11 +50,15 @@ Everything runs in Docker; the host needs only Docker with the compose plugin.
 ./dev.sh test         # unit tests
 ./dev.sh typecheck    # tsc on src/, test/ and dev/
 ./dev.sh build        # dist/ (SWC + tsc declarations)
+./dev.sh pnpm lint    # ESLint; `pnpm format` / `pnpm format:check` for Prettier
+./dev.sh pnpm test:pack  # pack, install into a scratch project, import every entry point
 ./dev.sh shell        # a shell in the container; ./dev.sh <cmd> runs any command
 ./dev.sh reset        # remove containers and volumes
 ```
 
 `PORT=3100 ./dev.sh start` uses another host port. After changing the plugin's admin components or paths, run `./dev.sh pnpm generate:importmap`; after changing the dev collections, `./dev.sh pnpm generate:types`.
+
+CI (`.github/workflows/ci.yml`) runs lint, format check, typecheck, unit tests and the build on every pull request, repeats typecheck, tests and build on the lowest supported Payload, and runs the pack test on both. Releases must be packed with pnpm: only pnpm applies `publishConfig.exports`, which points the entry points at `dist/`.
 
 The dev app (`dev/payload.config.ts`) has a `media` collection with three image sizes and a `pages` collection with a framed hero image and a `card` block. The frontend at `/` renders the pages with `frameImage()` and a plain `<img>`.
 
@@ -49,7 +71,9 @@ imageFramingPlugin({
   secret: process.env.PAYLOAD_SECRET,
   usages: {
     // <collection>.<field path>, or block:<block slug>.<field path>; unnamed tabs and rows don't count
-    'pages.hero.media': { frames: [{ when: { type: 'fullBleed' }, frames: { base: { aspect: 16 / 9 } } }] },
+    'pages.hero.media': {
+      frames: [{ when: { type: 'fullBleed' }, frames: { base: { aspect: 16 / 9 } } }],
+    },
     'block:cta.media': {},
   },
 })

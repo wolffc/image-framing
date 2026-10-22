@@ -16,7 +16,7 @@ services:
       # Polling keeps hot reload working on Docker Desktop (macOS/Windows) bind mounts.
       WATCHPACK_POLLING: ${WATCHPACK_POLLING:-false}
     ports:
-      - "${PORT:-3000}:3000"
+      - '${PORT:-3000}:3000'
     volumes:
       - .:/app
       - node_modules:/app/node_modules

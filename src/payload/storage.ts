@@ -29,7 +29,8 @@ export const localDiskStorage = ({
   // Names come from Payload or from a validated token, but never let one leave its directory.
   const inside = (dir: string, name: string) => {
     const file = path.resolve(dir, name)
-    if (!file.startsWith(path.resolve(dir) + path.sep)) throw new Error(`Invalid file name: ${name}`)
+    if (!file.startsWith(path.resolve(dir) + path.sep))
+      throw new Error(`Invalid file name: ${name}`)
     return file
   }
 
@@ -54,7 +55,9 @@ export const localDiskStorage = ({
     clearCached: async (prefix) => {
       const names = await fs.readdir(cache).catch(() => [] as string[])
       await Promise.all(
-        names.filter((name) => name.startsWith(prefix)).map((name) => fs.rm(inside(cache, name), { force: true })),
+        names
+          .filter((name) => name.startsWith(prefix))
+          .map((name) => fs.rm(inside(cache, name), { force: true })),
       )
     },
   }
