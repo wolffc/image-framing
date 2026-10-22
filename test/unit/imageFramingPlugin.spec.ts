@@ -416,6 +416,8 @@ describe('imageFramingPlugin options', () => {
 
       expect(endpoint.path).toBe('/framed/:id/:token/:filename')
       expect((await call(endpoint)).headers.get('Cache-Control')).toBe('public, max-age=60')
+      const [bare] = endpoints(run({ endpoint: { path: 'framed' } }))
+      expect(bare.path).toBe('/framed/:id/:token/:filename')
     })
 
     it('leaves the endpoint out with endpoint: false', () => {

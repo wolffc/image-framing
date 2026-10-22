@@ -35,7 +35,7 @@ export const cropEndpoint = ({
   secret: string
   storage: (doc: MediaDoc) => FramingStorage
 }): Endpoint => ({
-  path: `${path.replace(/\/+$/, '')}/:id/:token/:filename`,
+  path: `/${path.replace(/^\/+|\/+$/g, '')}/:id/:token/:filename`,
   method: 'get',
   handler: async (req) => {
     const { id, token } = (req.routeParams ?? {}) as Record<string, string | undefined>
