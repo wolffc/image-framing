@@ -2,6 +2,19 @@
   "name": "@wolffc/payload-image-framing",
   "version": "0.0.0",
   "description": "Non-destructive crop and focus areas for Payload CMS uploads, with per-usage overrides and cover areas",
+  "keywords": [
+    "payload",
+    "payload-plugin",
+    "payloadcms",
+    "image-crop",
+    "focal-point",
+    "focus-area",
+    "nextjs"
+  ],
+  "homepage": "https://github.com/wolffc/image-framing#readme",
+  "bugs": {
+    "url": "https://github.com/wolffc/image-framing/issues"
+  },
   "license": "MIT",
   "author": "Christian Wolff <chris@wolffc.de>",
   "repository": {
@@ -9,32 +22,41 @@
     "url": "git+https://github.com/wolffc/image-framing.git"
   },
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
-      "import": "./src/index.ts",
       "types": "./src/index.ts",
+      "import": "./src/index.ts",
       "default": "./src/index.ts"
     },
     "./core": {
-      "import": "./src/core/index.ts",
       "types": "./src/core/index.ts",
+      "import": "./src/core/index.ts",
       "default": "./src/core/index.ts"
     },
-    "./next": {
-      "import": "./src/next/index.ts",
-      "types": "./src/next/index.ts",
-      "default": "./src/next/index.ts"
+    "./server": {
+      "types": "./src/exports/server.ts",
+      "import": "./src/exports/server.ts",
+      "default": "./src/exports/server.ts"
     },
     "./client": {
-      "import": "./src/exports/client.ts",
       "types": "./src/exports/client.ts",
+      "import": "./src/exports/client.ts",
       "default": "./src/exports/client.ts"
+    },
+    "./next": {
+      "types": "./src/next/index.ts",
+      "import": "./src/next/index.ts",
+      "default": "./src/next/index.ts"
     }
   },
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "pnpm clean && pnpm build:types && pnpm build:swc",
@@ -43,20 +65,29 @@
     "clean": "rm -rf dist *.tsbuildinfo",
     "dev": "next dev dev --webpack --hostname 0.0.0.0 --port 3000",
     "dev:payload": "cross-env PAYLOAD_CONFIG_PATH=./dev/payload.config.ts payload",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "generate:importmap": "pnpm dev:payload generate:importmap",
     "generate:types": "pnpm dev:payload generate:types",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "vitest run",
+    "test:pack": "bash scripts/pack-smoke.sh",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p dev/tsconfig.json"
   },
   "peerDependencies": {
-    "@payloadcms/ui": "^3.91.0",
-    "payload": "^3.91.0",
+    "@payloadcms/ui": "^3.39.0",
+    "next": "^15.2.3 || ^16.0.0",
+    "payload": "^3.39.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "sharp": ">=0.32.6"
   },
-  "dependencies": {
-    "sharp": "^0.35.5"
+  "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@payloadcms/db-sqlite": "3.91.0",
@@ -68,11 +99,15 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "cross-env": "10.1.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "16.4.2",
     "graphql": "^16.8.1",
     "next": "16.4.2",
     "payload": "3.91.0",
+    "prettier": "^3.9.10",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "sharp": "0.35.5",
     "typescript": "6.0.3",
     "vitest": "5.0.5"
   },
@@ -84,24 +119,29 @@
     "access": "public",
     "exports": {
       ".": {
-        "import": "./dist/index.js",
         "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
         "default": "./dist/index.js"
       },
       "./core": {
-        "import": "./dist/core/index.js",
         "types": "./dist/core/index.d.ts",
+        "import": "./dist/core/index.js",
         "default": "./dist/core/index.js"
       },
-      "./next": {
-        "import": "./dist/next/index.js",
-        "types": "./dist/next/index.d.ts",
-        "default": "./dist/next/index.js"
+      "./server": {
+        "types": "./dist/exports/server.d.ts",
+        "import": "./dist/exports/server.js",
+        "default": "./dist/exports/server.js"
       },
       "./client": {
-        "import": "./dist/exports/client.js",
         "types": "./dist/exports/client.d.ts",
+        "import": "./dist/exports/client.js",
         "default": "./dist/exports/client.js"
+      },
+      "./next": {
+        "types": "./dist/next/index.d.ts",
+        "import": "./dist/next/index.js",
+        "default": "./dist/next/index.js"
       }
     },
     "main": "./dist/index.js",

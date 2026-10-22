@@ -2,7 +2,8 @@ import type { CSSProperties } from 'react'
 
 import config from '@payload-config'
 import { type FrameRule, matchFrames } from '@wolffc/payload-image-framing/core'
-import { type FrameableMedia, frameImage } from '@wolffc/payload-image-framing/next'
+import { type FrameableMedia, frameImage } from '@wolffc/payload-image-framing/server'
+import Link from 'next/link'
 import { getPayload } from 'payload'
 
 import { cardFrames, heroFrames } from '../../framing.js'
@@ -46,7 +47,7 @@ export default async function Home() {
     <main>
       <h1>Image framing dev app</h1>
       <p>
-        Pages from the <a href="/admin/collections/pages">admin</a>, rendered with{' '}
+        Pages from the <Link href="/admin/collections/pages">admin</Link>, rendered with{' '}
         <code>frameImage()</code>. Resize the window to see the phone and desktop frames.
       </p>
       {docs.length === 0 && <p>No pages yet. Upload an image to Media and create a page.</p>}
