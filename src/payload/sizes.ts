@@ -1,8 +1,8 @@
 import type { FileData, ImageSize, TypeWithID } from 'payload'
-import sharp, { type ResizeOptions } from 'sharp'
 
 import { type Framing, visibleRect } from '../core/index.js'
 
+import type { ResizeOptions, Sharp } from './sharp.js'
 import type { FramingStorage } from './storage.js'
 
 type SizeData = {
@@ -40,11 +40,13 @@ export const rebuildSizes = async ({
   doc,
   framing,
   imageSizes,
+  sharp,
   storage,
 }: {
   doc: MediaDoc
   framing: Framing
   imageSizes: ImageSize[]
+  sharp: Sharp
   storage: FramingStorage
 }): Promise<Record<string, SizeData> | null> => {
   if (!doc.filename || !doc.width || !doc.height || !doc.sizes) return null

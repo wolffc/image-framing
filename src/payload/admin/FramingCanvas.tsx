@@ -58,7 +58,7 @@ export interface FramingCanvasProps {
   url: string
   /** The crop may not leave this rect, usually the whole photo. */
   limit: Rect
-  /** Drawn as a dotted outline for orientation, e.g. the media crop in a block's editor. */
+  /** Drawn as a dotted outline for orientation, e.g. the media crop in a usage's editor. */
   reference?: Rect
   crop: Rect
   focus: Rect

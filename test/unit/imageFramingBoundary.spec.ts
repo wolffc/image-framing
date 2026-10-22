@@ -11,8 +11,9 @@ import { describe, expect, it } from 'vitest'
  * - `core/` runs anywhere (browser included): it imports nothing but itself.
  * - `server/` signs URLs with the secret: core and `node:crypto`, nothing that
  *   ties it to Payload, React or Next.
- * - `payload/` (the plugin): core, server, `payload`, `sharp` and Node; not the
- *   admin components, which Payload loads by path, and not React.
+ * - `payload/` (the plugin): core, server, `payload` and Node; not `sharp`
+ *   (it uses `config.sharp`), not the admin components, which Payload loads by
+ *   path, and not React.
  * - `payload/admin/` (the client entry): core, React and `@payloadcms/ui`;
  *   types from `payload`; nothing from Node, `sharp` or the server layer.
  * - `next/`: core, server, `next` and React.
@@ -43,7 +44,8 @@ const layers: Record<string, Layer> = {
   plugin: {
     files: (f) => (f.startsWith('payload/') && !f.startsWith('payload/admin/')) || f === 'index.ts',
     local: ['core/', 'server/', 'payload/'],
-    packages: (spec) => spec === 'payload' || spec === 'sharp' || isNode(spec),
+    // Not sharp: the plugin uses Payload's instance (`config.sharp`).
+    packages: (spec) => spec === 'payload' || isNode(spec),
   },
   client: {
     files: (f) => f.startsWith('payload/admin/') || f === 'exports/client.ts',

@@ -24,7 +24,7 @@ export interface Frames {
 
 /**
  * Which frames a usage shows, by the values of its sibling fields, e.g. the
- * hero's layout: `{ when: { type: 'fullBleed', contentAlign: 'center' }, frames }`.
+ * layout select next to the image: `{ when: { layout: 'fullBleed', align: 'center' }, frames }`.
  * Plain data, so the admin can use the same rules as the site.
  */
 export interface FrameRule {

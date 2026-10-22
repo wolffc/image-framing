@@ -1,8 +1,8 @@
 import type { CollectionSlug, Endpoint } from 'payload'
-import sharp from 'sharp'
 
 import { readCropToken } from '../server/cropToken.js'
 
+import { getSharp } from './sharp.js'
 import { type MediaDoc, toPixels } from './sizes.js'
 import type { FramingStorage } from './storage.js'
 
@@ -12,8 +12,8 @@ const notFound = () => new Response('Not found', { status: 404 })
 
 /**
  * Serves a copy of a media item cut to a signed crop rect, e.g.
- * `/api/media/crop/7/5000-0-5000-10000.<sig>/beach.jpg`. Any rect inside the
- * photo is allowed, since a block's own crop may be wider than the media's,
+ * `<api>/<collection>/crop/7/5000-0-5000-10000.<sig>/beach.jpg`. Any rect inside the
+ * photo is allowed, since a usage's own crop may be wider than the media's,
  * but only with the server's signature, so only crops the site renders can be
  * requested. Copies are cached; the URL changes with every new version of the
  * media, so they can be cached forever downstream too.
@@ -62,7 +62,7 @@ export const cropEndpoint = ({
 
     const original = await files.readOriginal(doc.filename).catch(() => null)
     if (!original) return notFound()
-    const cropped = await sharp(original)
+    const cropped = await getSharp(req.payload)(original)
       .rotate()
       .extract(toPixels(rect, doc.width, doc.height))
       .toBuffer()

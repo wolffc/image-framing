@@ -55,6 +55,46 @@ describe('frameImage', () => {
     expect(resource.url.startsWith('/img/crop/7/')).toBe(true)
   })
 
+  it('serves the crop next to the file route of any collection and API route', () => {
+    const images = { ...cropped, url: '/cms-api/images/file/beach.jpg' }
+
+    expect(frameImage({ media: images, secret }).resource.url).toMatch(
+      /^\/cms-api\/images\/crop\/7\/[\w.-]+\/beach\.jpg$/,
+    )
+  })
+
+  it('keeps the origin of an absolute media URL (serverURL set)', () => {
+    const absolute = { ...cropped, url: 'https://cms.example.com/api/media/file/beach.jpg?v=2' }
+
+    expect(frameImage({ media: absolute, secret }).resource.url).toMatch(
+      /^https:\/\/cms\.example\.com\/api\/media\/crop\/7\/[\w.-]+\/beach\.jpg$/,
+    )
+  })
+
+  it('serves from baseUrl instead of the media origin', () => {
+    const absolute = { ...cropped, url: 'https://cms.example.com/api/media/file/beach.jpg' }
+
+    expect(
+      frameImage({ media: absolute, baseUrl: 'https://cdn.example.com/', secret }).resource.url,
+    ).toMatch(/^https:\/\/cdn\.example\.com\/api\/media\/crop\/7\//)
+    expect(
+      frameImage({ media: cropped, baseUrl: 'https://cdn.example.com', secret }).resource.url,
+    ).toMatch(/^https:\/\/cdn\.example\.com\/api\/media\/crop\/7\//)
+  })
+
+  it('asks for a route prefix when the media URL is not Payload’s file route', () => {
+    const bucket = { ...cropped, url: 'https://bucket.example.com/beach.jpg' }
+
+    expect(() => frameImage({ media: bucket, secret })).toThrow(/routePrefix/)
+    expect(
+      frameImage({ media: bucket, routePrefix: '/api/media/crop', secret }).resource.url,
+    ).toMatch(/^\/api\/media\/crop\/7\//)
+    // Uncropped, the original URL is used and no crop route is needed.
+    expect(frameImage({ media: { ...media, url: bucket.url }, secret }).resource.url).toBe(
+      bucket.url,
+    )
+  })
+
   it('changes the URL when the crop or the media changes', () => {
     const a = frameImage({ media: cropped, secret }).resource.url
     const b = frameImage({

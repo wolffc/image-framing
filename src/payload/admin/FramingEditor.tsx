@@ -10,7 +10,7 @@ import { type PreviewFrame, PreviewStrip } from './PreviewStrip.js'
 import { useRect } from './useRect.js'
 
 /**
- * Crop and focus area editor for a media document (#316). The crop area is
+ * Crop and focus area editor for a media document. The crop area is
  * the part of the photo the site may ever show; the focus area is the part
  * every frame keeps in view where it can. Both are data: the original file is
  * never changed, so a crop can be widened again later.
@@ -47,7 +47,8 @@ export const FramingEditor: React.FC<{ previewShapes?: PreviewFrame[] }> = ({
         The <strong>crop area</strong> (solid frame) is the part of the photo the site shows, in
         every size and shape. The <strong>focus area</strong> (dashed frame) is the subject: the
         site keeps it in view and away from text. The original file stays as it is, so you can widen
-        the crop again later. A block can set its own crop, narrower or wider.
+        the crop again later. Each place that uses the photo can set its own crop, narrower or
+        wider.
       </p>
 
       {url ? (

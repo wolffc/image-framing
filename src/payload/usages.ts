@@ -73,8 +73,8 @@ const overrideGroup = (
 
 /**
  * Adds an `imageFraming` override after every upload field listed in `usages`,
- * found by path: `<collection or global>.<field path>` (e.g. `pages.hero.media`)
- * or `block:<block slug>.<field path>` (e.g. `block:cta.media`). Unnamed tabs,
+ * found by path: `<collection or global>.<field path>` (e.g. `pages.header.image`)
+ * or `block:<block slug>.<field path>` (e.g. `block:card.image`). Unnamed tabs,
  * rows and collapsibles don't count in a path. Throws for a usage it cannot
  * find, so a renamed field doesn't silently lose its overrides.
  */

@@ -109,9 +109,10 @@ describe('public API', () => {
           "type FrameImageOptions",
         ],
         "./server": [
+          "cropRoutePrefix",
           "cropToken",
           "cropUrl",
-          "DEFAULT_ROUTE_PREFIX",
+          "type CropUrlOptions",
           "DEFAULT_VARIABLE",
           "type FrameableMedia",
           "type FramedImage",
