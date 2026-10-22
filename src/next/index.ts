@@ -1,5 +1,12 @@
 /**
- * Server-side helpers for rendering framed media with `next/image`. Call them
- * in server components only: they sign URLs with the plugin's secret.
+ * `@wolffc/payload-image-framing/next`: the place for Next.js-only helpers
+ * (a `<FramedImage>` component is planned). `frameImage` has no Next
+ * dependency and lives in `./server`; it is re-exported here for convenience.
  */
-export * from './frameImage.js'
+export {
+  type FrameableMedia,
+  type FramedImage,
+  type FramedResource,
+  frameImage,
+  type FrameImageOptions,
+} from '../server/frameImage.js'

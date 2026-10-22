@@ -1,7 +1,7 @@
 import type { CollectionSlug, Endpoint } from 'payload'
 import sharp from 'sharp'
 
-import { readCropToken } from '../core/index.js'
+import { readCropToken } from '../server/cropToken.js'
 
 import { type MediaDoc, toPixels } from './sizes.js'
 import type { FramingStorage } from './storage.js'

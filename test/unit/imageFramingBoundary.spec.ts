@@ -5,13 +5,58 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /**
- * The image framing module (#316) is meant to become a package of its own, so
- * it may not reach into the site: no `@/…` imports and no relative imports out
- * of the module. Its `core/` layer is plain TypeScript that runs anywhere, so
- * it imports nothing but itself and Node's crypto.
+ * The layers of the package and what each may import, so every entry point
+ * stays usable where it is meant to run:
+ *
+ * - `core/` runs anywhere (browser included): it imports nothing but itself.
+ * - `server/` signs URLs with the secret: core and `node:crypto`, nothing that
+ *   ties it to Payload, React or Next.
+ * - `payload/` (the plugin): core, server, `payload`, `sharp` and Node; not the
+ *   admin components, which Payload loads by path, and not React.
+ * - `payload/admin/` (the client entry): core, React and `@payloadcms/ui`;
+ *   types from `payload`; nothing from Node, `sharp` or the server layer.
+ * - `next/`: core, server, `next` and React.
  */
 
-const moduleDir = path.resolve(import.meta.dirname, '../../src')
+const srcDir = path.resolve(import.meta.dirname, '../../src')
+
+interface Layer {
+  /** Files of the layer, relative to src/. */
+  files: (file: string) => boolean
+  /** Directories (relative to src/, with a trailing slash) it may import from. */
+  local: string[]
+  /** Packages it may import at runtime. */
+  packages: (spec: string) => boolean
+  /** Packages it may import types from. */
+  typePackages?: (spec: string) => boolean
+}
+
+const isNode = (spec: string) => spec.startsWith('node:')
+
+const layers: Record<string, Layer> = {
+  core: { files: (f) => f.startsWith('core/'), local: ['core/'], packages: () => false },
+  server: {
+    files: (f) => f.startsWith('server/') || f === 'exports/server.ts',
+    local: ['core/', 'server/'],
+    packages: (spec) => spec === 'node:crypto',
+  },
+  plugin: {
+    files: (f) => (f.startsWith('payload/') && !f.startsWith('payload/admin/')) || f === 'index.ts',
+    local: ['core/', 'server/', 'payload/'],
+    packages: (spec) => spec === 'payload' || spec === 'sharp' || isNode(spec),
+  },
+  client: {
+    files: (f) => f.startsWith('payload/admin/') || f === 'exports/client.ts',
+    local: ['core/', 'payload/admin/'],
+    packages: (spec) => spec === 'react' || spec === '@payloadcms/ui',
+    typePackages: (spec) => spec === 'payload',
+  },
+  next: {
+    files: (f) => f.startsWith('next/'),
+    local: ['core/', 'server/', 'next/'],
+    packages: (spec) => spec === 'react' || spec === 'next' || spec.startsWith('next/'),
+  },
+}
 
 const sourceFiles = (dir: string): string[] =>
   fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -20,63 +65,76 @@ const sourceFiles = (dir: string): string[] =>
     return /\.(ts|tsx)$/.test(entry.name) ? [full] : []
   })
 
-const importsOf = (file: string): string[] =>
+interface Import {
+  spec: string
+  typeOnly: boolean
+}
+
+const importsOf = (file: string): Import[] =>
   [
     ...fs
       .readFileSync(file, 'utf8')
       .matchAll(
-        /(?:import|export)\s[^'"]*?from\s+['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g,
+        /(?:^|\n)\s*(import|export)(\s+type)?\s[^'"]*?from\s+['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)|(?:^|\n)\s*import\s+['"]([^'"]+)['"]/g,
       ),
-  ].map((match) => match[1] ?? match[2])
+  ].map((match) => ({
+    spec: match[3] ?? match[4] ?? match[5],
+    typeOnly: Boolean(match[2]),
+  }))
 
-const files = fs.existsSync(moduleDir) ? sourceFiles(moduleDir) : []
+const files = sourceFiles(srcDir).map((file) =>
+  path.relative(srcDir, file).split(path.sep).join('/'),
+)
 
-describe('image framing module boundary', () => {
-  it('has the core, payload and next layers', () => {
-    for (const layer of ['core', 'payload', 'next']) {
-      expect(fs.existsSync(path.join(moduleDir, layer, 'index.ts')), layer).toBe(true)
-    }
-  })
+const layerOf = (file: string) => Object.entries(layers).find(([, layer]) => layer.files(file))?.[0]
 
-  it('imports nothing from the site', () => {
-    const offending = files.flatMap((file) =>
-      importsOf(file)
-        .filter(
-          (spec) =>
-            spec.startsWith('@/') ||
-            (spec.startsWith('.') &&
-              !path.resolve(path.dirname(file), spec).startsWith(moduleDir + path.sep)),
-        )
-        .map((spec) => `${path.relative(moduleDir, file)}: ${spec}`),
+describe('package layers', () => {
+  it('puts every source file in exactly one layer', () => {
+    const unassigned = files.filter((file) => !layerOf(file))
+    const ambiguous = files.filter(
+      (file) => Object.values(layers).filter((layer) => layer.files(file)).length > 1,
     )
 
-    expect(offending).toEqual([])
-  })
-
-  it('keeps core free of Payload, React and Next', () => {
-    const coreDir = path.join(moduleDir, 'core') + path.sep
-    const offending = files
-      .filter((file) => file.startsWith(coreDir))
-      .flatMap((file) =>
-        importsOf(file)
-          .filter((spec) => !spec.startsWith('.') && spec !== 'node:crypto')
-          .map((spec) => `${path.relative(moduleDir, file)}: ${spec}`),
-      )
-
     expect(files.length).toBeGreaterThan(0)
-    expect(offending).toEqual([])
+    expect(unassigned).toEqual([])
+    expect(ambiguous).toEqual([])
   })
 
-  it('keeps next free of Payload', () => {
-    const nextDir = path.join(moduleDir, 'next') + path.sep
+  it.each(Object.keys(layers))('keeps the %s layer to its imports', (name) => {
+    const layer = layers[name]
     const offending = files
-      .filter((file) => file.startsWith(nextDir))
+      .filter((file) => layer.files(file))
       .flatMap((file) =>
-        importsOf(file)
-          .filter((spec) => spec === 'payload' || spec.startsWith('@payloadcms/'))
-          .map((spec) => `${path.relative(moduleDir, file)}: ${spec}`),
+        importsOf(path.join(srcDir, file))
+          .filter(({ spec, typeOnly }) => {
+            if (spec.startsWith('.')) {
+              const target = path
+                .relative(srcDir, path.resolve(srcDir, path.dirname(file), spec))
+                .split(path.sep)
+                .join('/')
+              if (target.startsWith('..')) return true
+              return !layer.local.some((dir) => target.startsWith(dir)) || isAdmin(name, target)
+            }
+            if (layer.packages(spec)) return false
+            return !(typeOnly && layer.typePackages?.(spec))
+          })
+          .map(({ spec }) => `${file}: ${spec}`),
       )
 
     expect(offending).toEqual([])
+  })
+
+  it("marks every client module with 'use client'", () => {
+    const missing = files
+      .filter((file) => layerOf(file) === 'client')
+      .filter(
+        (file) => !fs.readFileSync(path.join(srcDir, file), 'utf8').startsWith("'use client'"),
+      )
+
+    expect(missing).toEqual([])
   })
 })
+
+/** The plugin may import from payload/ but not from payload/admin/. */
+const isAdmin = (layer: string, target: string) =>
+  layer === 'plugin' && target.startsWith('payload/admin/')

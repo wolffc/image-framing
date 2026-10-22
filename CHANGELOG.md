@@ -10,3 +10,7 @@ package uses [Semantic Versioning](https://semver.org/).
 - Package layout after Payload's plugin template, with a Docker-based dev app.
 - Entry points `.`, `./core`, `./server`, `./client` and `./next`.
 - Supports Payload `^3.39.0`.
+- `./core` has no Node imports and works in the browser; the crop token
+  signing moved to `./server`, together with `frameImage`.
+- Every entry point lists its exports explicitly; `./next` re-exports
+  `frameImage` until it gets Next-only helpers.

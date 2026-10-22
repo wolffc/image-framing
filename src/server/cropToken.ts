@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 
-import type { Rect } from './rect.js'
+import type { Rect } from '../core/index.js'
 
 /**
  * The path segment that names a cropped copy: the rect in hundredths of a
@@ -13,7 +13,7 @@ import type { Rect } from './rect.js'
 const SIGNATURE_LENGTH = 22
 const TOKEN = /^(\d{1,5})-(\d{1,5})-(\d{1,5})-(\d{1,5})\.([\w-]{22})$/
 
-interface TokenContext {
+export interface TokenContext {
   id: number | string
   secret: string
   updatedAt?: string | null

@@ -3,9 +3,14 @@
 import { Button, Drawer, useConfig, useDrawerSlug, useFormFields, useModal } from '@payloadcms/ui'
 import React, { useEffect, useState } from 'react'
 
-// Not '../../core': its index also exports the URL signing, which needs Node's crypto.
-import { type FrameRule, matchFrames } from '../../core/frame.js'
-import { FULL_RECT, isCompleteRect, resolveFraming, type StoredRect } from '../../core/rect.js'
+import {
+  type FrameRule,
+  FULL_RECT,
+  isCompleteRect,
+  matchFrames,
+  resolveFraming,
+  type StoredRect,
+} from '../../core/index.js'
 
 import { FramingCanvas } from './FramingCanvas.js'
 import { type PreviewFrame, PreviewStrip } from './PreviewStrip.js'
