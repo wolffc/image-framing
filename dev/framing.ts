@@ -11,9 +11,9 @@ import {
  */
 export const framing = defineFraming({
   breakpoints: {
-    base: { label: 'Phone' },
-    md: { minWidth: 768, label: 'Tablet' },
-    lg: { minWidth: 1280, label: 'Desktop' },
+    base: { label: { en: 'Phone', de: 'Smartphone' } },
+    md: { minWidth: 768, label: { en: 'Tablet', de: 'Tablet' } },
+    lg: { minWidth: 1280, label: { en: 'Desktop', de: 'Desktop' } },
   },
 })
 

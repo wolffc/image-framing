@@ -10,6 +10,8 @@ import {
   visibleRect,
 } from '../../core/index.js'
 
+import { useFramingTranslation } from './i18n.js'
+
 export interface PreviewFrame {
   /** Stable key, also `data-framing-preview` for tests. */
   key: string
@@ -42,10 +44,11 @@ export const PreviewStrip: React.FC<{
   image: { width: number; height: number }
   url: string
 }> = ({ crop, focus, frames, image, url }) => {
+  const { t } = useFramingTranslation()
   if (!frames.length || !image.width || !image.height) return null
   return (
     <div data-framing-preview-strip style={{ marginTop: 16 }}>
-      <p style={{ fontWeight: 600, margin: '0 0 8px' }}>Preview</p>
+      <p style={{ fontWeight: 600, margin: '0 0 8px' }}>{t('preview')}</p>
       <div style={{ alignItems: 'flex-end', display: 'flex', flexWrap: 'wrap', gap: 12 }}>
         {frames.map(({ fallbackFrom, frame, key, label, note }) => {
           const placement = previewPlacement(visibleRect({ ...frame, crop, focus, image }))

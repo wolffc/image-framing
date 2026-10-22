@@ -17,6 +17,7 @@ import {
   type StoredRect,
 } from '../core/index.js'
 
+import { translate } from './i18n.js'
 import { getSharp } from './sharp.js'
 import { type MediaDoc, rebuildSizes } from './sizes.js'
 import type { FramingStorage } from './storage.js'
@@ -38,7 +39,7 @@ const sameRect = (a: StoredRect, b: StoredRect) =>
  */
 export const validateFraming =
   (collection: string): CollectionBeforeValidateHook =>
-  ({ data, originalDoc }) => {
+  ({ data, originalDoc, req }) => {
     if (!data) return data
     const incomingCrop = data.crop === undefined ? originalDoc?.crop : data.crop
     const incomingFocus = data.focusArea === undefined ? originalDoc?.focusArea : data.focusArea
@@ -47,7 +48,7 @@ export const validateFraming =
     if (!isRectInside(crop, FULL_RECT) || crop.width <= 0 || crop.height <= 0) {
       throw new ValidationError({
         collection,
-        errors: [{ message: 'The crop area must lie inside the photo.', path: 'crop' }],
+        errors: [{ message: translate(req, 'cropOutside'), path: 'crop' }],
       })
     }
 

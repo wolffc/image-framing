@@ -36,6 +36,12 @@ const isNode = (spec: string) => spec.startsWith('node:')
 
 const layers: Record<string, Layer> = {
   core: { files: (f) => f.startsWith('core/'), local: ['core/'], packages: () => false },
+  // The admin texts: plain data.
+  translations: {
+    files: (f) => f.startsWith('translations/'),
+    local: ['translations/'],
+    packages: () => false,
+  },
   server: {
     files: (f) => f.startsWith('server/') || f === 'exports/server.ts',
     local: ['core/', 'server/'],
@@ -43,13 +49,13 @@ const layers: Record<string, Layer> = {
   },
   plugin: {
     files: (f) => (f.startsWith('payload/') && !f.startsWith('payload/admin/')) || f === 'index.ts',
-    local: ['core/', 'server/', 'payload/'],
+    local: ['core/', 'server/', 'payload/', 'translations/'],
     // Not sharp: the plugin uses Payload's instance (`config.sharp`).
     packages: (spec) => spec === 'payload' || isNode(spec),
   },
   client: {
     files: (f) => f.startsWith('payload/admin/') || f === 'exports/client.ts',
-    local: ['core/', 'payload/admin/'],
+    local: ['core/', 'payload/admin/', 'translations/'],
     packages: (spec) => spec === 'react' || spec === '@payloadcms/ui',
     typePackages: (spec) => spec === 'payload',
   },

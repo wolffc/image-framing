@@ -3,11 +3,12 @@
 import { FieldLabel, useDocumentInfo, useFormFields } from '@payloadcms/ui'
 import React from 'react'
 
-import { FULL_RECT, resolveFraming } from '../../core/index.js'
+import { type Frame, FULL_RECT, type Label, resolveFraming } from '../../core/index.js'
 
 import { FramingCanvas } from './FramingCanvas.js'
 import { fieldAccess } from './permissions.js'
-import { type PreviewFrame, PreviewStrip } from './PreviewStrip.js'
+import { RichText, useFramingTranslation } from './i18n.js'
+import { PreviewStrip } from './PreviewStrip.js'
 import { useRect } from './useRect.js'
 
 /**
@@ -16,11 +17,19 @@ import { useRect } from './useRect.js'
  * every frame keeps in view where it can. Both are data: the original file is
  * never changed, so a crop can be widened again later.
  */
-export const FramingEditor: React.FC<{ previewShapes?: PreviewFrame[]; readOnly?: boolean }> = ({
-  previewShapes = [],
-  readOnly: readOnlyProp = false,
-}) => {
+/** A shape the media editor previews, as the plugin's `previewShapes` option gives it. */
+interface PreviewShapeProp {
+  key: string
+  label: Label
+  frame: Frame
+}
+
+export const FramingEditor: React.FC<{
+  previewShapes?: PreviewShapeProp[]
+  readOnly?: boolean
+}> = ({ previewShapes = [], readOnly: readOnlyProp = false }) => {
   const { docPermissions, id } = useDocumentInfo()
+  const { label, t } = useFramingTranslation()
   const url = useFormFields(([fields]) => fields.url?.value as string | undefined)
   const width = useFormFields(([fields]) => fields.width?.value as number | undefined)
   const height = useFormFields(([fields]) => fields.height?.value as number | undefined)
@@ -48,13 +57,9 @@ export const FramingEditor: React.FC<{ previewShapes?: PreviewFrame[]; readOnly?
       data-image-framing-editor
       style={{ marginBottom: 'var(--spacing-field)' }}
     >
-      <FieldLabel label="Crop and focus area" />
+      <FieldLabel label={t('cropAndFocusArea')} />
       <p style={{ color: 'var(--theme-elevation-500)', margin: '0 0 12px' }}>
-        The <strong>crop area</strong> (solid frame) is the part of the photo the site shows, in
-        every size and shape. The <strong>focus area</strong> (dashed frame) is the subject: the
-        site keeps it in view and away from text. The original file stays as it is, so you can widen
-        the crop again later. Where a page sets its own crop for the photo, narrower or wider, that
-        one applies there instead.
+        <RichText text={t('editorIntro')} />
       </p>
 
       {url ? (
@@ -80,19 +85,19 @@ export const FramingEditor: React.FC<{ previewShapes?: PreviewFrame[]; readOnly?
               style={{ marginTop: 12 }}
               type="button"
             >
-              Show the whole photo
+              {t('showWholePhoto')}
             </button>
           )}
           <PreviewStrip
             crop={crop}
             focus={focus}
-            frames={previewShapes}
+            frames={previewShapes.map((shape) => ({ ...shape, label: label(shape.label) }))}
             image={{ height: height ?? 0, width: width ?? 0 }}
             url={url}
           />
         </>
       ) : (
-        <p>Upload and save the photo first, then set its crop and focus area here.</p>
+        <p>{t('uploadFirst')}</p>
       )}
     </div>
   )

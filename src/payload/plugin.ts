@@ -5,11 +5,14 @@ import {
   type DefaultBreakpoint,
   type Frame,
   type FramingConfig,
+  type Label,
 } from '../core/index.js'
+import type { ImageFramingTranslations } from '../translations/index.js'
 
 import { clearCacheAfterDelete, rebuildSizesAfterChange, validateFraming } from './hooks.js'
 import { cropEndpoint } from './cropEndpoint.js'
 import { dataNames, type FramingAccess, MEDIA_FIELD_NAMES, mediaFramingFields } from './fields.js'
+import { withTranslations } from './i18n.js'
 import { assertSharp } from './sharp.js'
 import type { MediaDoc } from './sizes.js'
 import { type FramingStorage, localDiskStorage } from './storage.js'
@@ -30,12 +33,17 @@ export const DEFAULT_PREVIEW_SHAPES: PreviewShape[] = [
   { key: '21x9', label: '21:9', frame: { aspect: 21 / 9 } },
   { key: '4x5', label: '4:5', frame: { aspect: 4 / 5 } },
   { key: '1x1', label: '1:1', frame: { aspect: 1 } },
-  { key: 'og', label: 'Social (1200×630)', frame: { aspect: 1200 / 630 } },
+  {
+    key: 'og',
+    label: { en: 'Social (1200×630)', de: 'Social Media (1200×630)' },
+    frame: { aspect: 1200 / 630 },
+  },
 ]
 
 export interface PreviewShape {
   key: string
-  label: string
+  /** A string, or one per language: `{ en: 'Square', de: 'Quadrat' }`. */
+  label: Label
   frame: Frame
 }
 
@@ -99,6 +107,13 @@ export interface ImageFramingPluginOptions<
   /** Payload component path of the usage editor. Default: the package's `UsageFramingField`. */
   usageEditorPath?: string
   /**
+   * Admin texts per language, merged over the shipped English and German
+   * ones: override single texts, e.g. `{ en: { done: 'Close' } }`, or add a
+   * language. Texts set in the Payload config's `i18n.translations` under
+   * `imageFraming` win over both.
+   */
+  translations?: ImageFramingTranslations
+  /**
    * Turns the plugin off but keeps its fields, so the database schema stays
    * the same (Payload plugin convention): no hooks, endpoint or editors.
    * Default: `false`.
@@ -131,6 +146,7 @@ export const imageFramingPlugin = <K extends string = DefaultBreakpoint>({
   editorPath = DEFAULT_EDITOR_PATH,
   framing = DEFAULT_FRAMING as unknown as FramingConfig<K>,
   secret: secretOption,
+  translations,
   usageEditorPath = DEFAULT_USAGE_EDITOR_PATH,
   usages = {},
   ...defaults
@@ -220,6 +236,7 @@ export const imageFramingPlugin = <K extends string = DefaultBreakpoint>({
     return addUsages(
       {
         ...config,
+        i18n: withTranslations(config, translations),
         collections: (config.collections ?? []).map((collection) =>
           slugs.includes(collection.slug) ? withFraming(collection, secret ?? '') : collection,
         ),

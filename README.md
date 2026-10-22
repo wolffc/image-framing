@@ -156,6 +156,19 @@ framedImageClasses(framing)
 
 Tailwind only generates classes it finds in your source, so copy the class string into your code or safelist it. The variables don't care what switches them: with container queries, the frame follows the size of its container instead of the window.
 
+### Admin translations
+
+The editors' texts go through Payload's i18n, in English and German. They follow the admin language; add `de` to `i18n.supportedLanguages` in your Payload config to offer German. Override single texts, or add a language, with the plugin's `translations` option, by key from `translations.en`:
+
+```ts
+imageFramingPlugin({
+  collections: ['media'],
+  translations: { de: { done: 'Schließen' }, fr: { done: 'Terminé', preview: 'Aperçu' } },
+})
+```
+
+Texts in your config's own `i18n.translations` under `imageFraming` win over the option. A supported language without texts of its own gets the English ones. Labels you pass in (breakpoint labels, preview shape labels, a usage's `label` and `admin.description`) take a string or one per language, like Payload's: `{ en: 'Tablet', de: 'Tablet' }`.
+
 ### Cropped-copy URLs
 
 `frameImage` serves a cropped photo from the plugin's route next to Payload's file route: a media `url` of `/api/media/file/beach.jpg` gives `/api/media/crop/<id>/<rect>.<signature>/beach.jpg`. So a collection with another slug, a custom `routes.api` or an absolute `serverURL` need no options. Two options cover other setups:
@@ -201,19 +214,20 @@ Every option is optional except `collections`; the defaults are the behaviour wi
 | `secret`          | `string`                                                             | the Payload config's `secret`                                            | Signs the cropped-copy URLs; `frameImage` needs the same value.                                                                                                                                            |
 | `usages`          | `{ [path]: UsageOptions }`                                           | `{}`                                                                     | Upload fields that get their own crop and focus area (see below).                                                                                                                                          |
 | `framing`         | `FramingConfig` from `defineFraming`                                 | `base` + `md` from 768 px                                                | The breakpoints the usage drawer previews; pass the same config to `frameImage`.                                                                                                                           |
+| `translations`    | `{ [language]: { [key]: string } }`                                  | English and German                                                       | Admin texts to override or add, by key; see Admin translations.                                                                                                                                            |
 | `editorPath`      | `string`                                                             | `'@wolffc/payload-image-framing/client#FramingEditor'`                   | Component path of the media editor, to use your own.                                                                                                                                                       |
 | `usageEditorPath` | `string`                                                             | `'@wolffc/payload-image-framing/client#UsageFramingField'`               | Component path of the usage editor, to use your own.                                                                                                                                                       |
 | `disabled`        | `boolean`                                                            | `false`                                                                  | Turns the plugin off but keeps its fields, so the database stays the same: no hooks, endpoint or editors.                                                                                                  |
 
 `UsageOptions`, per entry in `usages`:
 
-| Option              | Type                          | Default                  | Description                                                                                                                                 |
-| ------------------- | ----------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `frames`            | `FrameRule[]`                 | `[]`                     | The frames the usage shows the photo in, per breakpoint: the first rule whose `when` matches the sibling fields. For the drawer's previews. |
-| `name`              | `string`                      | `'imageFraming'`         | Name of the group next to the upload field that stores the usage's crop and focus area.                                                     |
-| `label`             | `string`                      | 'Framing for this usage' | Title of the usage's drawer.                                                                                                                |
-| `admin.description` | `string`                      | none                     | Shown under the usage's framing summary and in its drawer.                                                                                  |
-| `access`            | `{ create?, read?, update? }` | the plugin's `access`    | Field access for the usage's group.                                                                                                         |
+| Option              | Type                                 | Default                  | Description                                                                                                                                 |
+| ------------------- | ------------------------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `frames`            | `FrameRule[]`                        | `[]`                     | The frames the usage shows the photo in, per breakpoint: the first rule whose `when` matches the sibling fields. For the drawer's previews. |
+| `name`              | `string`                             | `'imageFraming'`         | Name of the group next to the upload field that stores the usage's crop and focus area.                                                     |
+| `label`             | `string` or `{ [language]: string }` | 'Framing for this usage' | Title of the usage's drawer.                                                                                                                |
+| `admin.description` | `string` or `{ [language]: string }` | none                     | Shown under the usage's framing summary and in its drawer.                                                                                  |
+| `access`            | `{ create?, read?, update? }`        | the plugin's `access`    | Field access for the usage's group.                                                                                                         |
 
 The plugin checks its configuration at startup and throws with the reason when a collection in `collections` doesn't exist or isn't an upload collection; a framed collection already has a field named `framing`, `crop` or `focusArea` (the media fields can't be renamed, since `frameImage` reads them); a usage's group name is taken on its level; a usage path matches no upload field, or one with several `relationTo` collections, `hasMany`, or a collection without framing; a frame rule names an undefined breakpoint; or `sharp` or the secret is missing.
 

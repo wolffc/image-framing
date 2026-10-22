@@ -4,12 +4,14 @@ import React, { useRef, useState } from 'react'
 
 import { MIN_SIZE, normalizeRect, type Rect } from '../../core/index.js'
 
+import { useFramingTranslation } from './i18n.js'
+
 type Target = 'crop' | 'focus'
 type Handle = 'move' | 'nw' | 'ne' | 'sw' | 'se'
 type Key = keyof Rect
 
 const KEYS: Key[] = ['x', 'y', 'width', 'height']
-const KEY_LABELS: Record<Key, string> = { x: 'Left', y: 'Top', width: 'Width', height: 'Height' }
+const KEY_LABELS = { x: 'left', y: 'top', width: 'width', height: 'height' } as const
 const CORNERS = ['nw', 'ne', 'sw', 'se'] as const
 
 /** A rect moved or resized by `dx`/`dy` percent with one handle, kept inside `within`. */
@@ -81,6 +83,7 @@ export const FramingCanvas: React.FC<FramingCanvasProps> = ({
   reference,
   url,
 }) => {
+  const { t } = useFramingTranslation()
   const box = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState<{
     handle: Handle
@@ -204,12 +207,12 @@ export const FramingCanvas: React.FC<FramingCanvasProps> = ({
         {(['crop', 'focus'] as const).map((target) => (
           <fieldset key={target} style={{ border: 0, margin: 0, padding: 0 }}>
             <legend style={{ fontWeight: 600, marginBottom: 8 }}>
-              {target === 'crop' ? 'Crop area' : 'Focus area'} (%)
+              {t('percent', { label: t(target === 'crop' ? 'cropArea' : 'focusArea') })}
             </legend>
             <div style={{ display: 'flex', gap: 8 }}>
               {KEYS.map((key) => (
                 <label key={key} style={{ display: 'grid', fontSize: 12, gap: 4 }}>
-                  {KEY_LABELS[key]}
+                  {t(KEY_LABELS[key])}
                   <input
                     // `crop.x` etc. for both editors, so tests and editors find the same fields.
                     data-framing-input={`${target === 'crop' ? 'crop' : 'focusArea'}.${key}`}

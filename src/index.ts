@@ -20,3 +20,8 @@ export {
   type PreviewShape,
   type UsageOptions,
 } from './payload/index.js'
+export {
+  type ImageFramingTranslationKey,
+  type ImageFramingTranslations,
+  translations,
+} from './translations/index.js'
