@@ -36,8 +36,6 @@ export interface FramedResource {
   width?: number | null
 }
 
-export type { Frames }
-
 export interface FrameImageOptions {
   media: FrameableMedia
   /** Without frames the style is empty, e.g. for a photo shown in its own shape. */
