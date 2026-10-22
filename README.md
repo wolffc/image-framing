@@ -50,6 +50,7 @@ The plugin registers its admin editors by package path (`@wolffc/payload-image-f
 - Payload `^3.39.0` (3.39 is the lowest version CI checks) with `sharp` in the Payload config; the package doesn't install sharp itself, it uses Payload's
 - React 19; Next.js 15.2.3+ or 16 for the admin panel
 - Node.js 20.18.1 or later
+- TypeScript 5.4 or later, if you use the types (`NoInfer`)
 
 ## Development
 
@@ -70,7 +71,7 @@ Everything runs in Docker; the host needs only Docker with the compose plugin.
 
 CI (`.github/workflows/ci.yml`) runs lint, format check, typecheck, unit tests and the build on every pull request, repeats typecheck, tests and build on the lowest supported Payload, and runs the pack test on both. Releases must be packed with pnpm: only pnpm applies `publishConfig.exports`, which points the entry points at `dist/`.
 
-The dev app (`dev/payload.config.ts`) has a `media` collection with three image sizes and a `pages` collection with a framed hero image and a `card` block. The frontend at `/` renders the pages with `frameImage()` and a plain `<img>`.
+The dev app (`dev/payload.config.ts`) has a `media` collection with three image sizes and a `pages` collection with a framed hero image and a `card` block, framed for three breakpoints (`dev/framing.ts`). The frontend at `/` renders the pages with `frameImage()`, a plain `<img>` and `framePositionCss()`.
 
 ## Use
 
@@ -109,8 +110,51 @@ const { resource, style } = frameImage({
   frames: { base: { aspect: 16 / 9 }, md: { aspect: 2.4, cover: [{ edge: 'left', size: 45 }] } },
   secret: process.env.PAYLOAD_SECRET, // the same secret as the plugin
 })
-// <div style={style}><Image src={resource.url} className="object-cover object-[var(--frame-pos)] md:object-[var(--frame-pos-md)]" … /></div>
+// <div style={style}><Image src={resource.url} className="object-cover object-[var(--frame-pos)] min-[768px]:object-[var(--frame-pos-md)]" … /></div>
 ```
+
+### Breakpoints
+
+By default a usage has a frame for phones (`base`) and one from 768 px up (`md`), and `frameImage` writes `--frame-pos` and `--frame-pos-md`. Define your own breakpoints once and share them between the plugin (the usage drawer previews one frame per breakpoint) and the rendering:
+
+```ts
+// framing.config.ts – imported by payload.config.ts and by server components
+import { defineFraming } from '@wolffc/payload-image-framing/core'
+
+export const framing = defineFraming({
+  breakpoints: {
+    base: { label: 'Phone' }, // always present, mobile first
+    md: { minWidth: 768, label: 'Tablet' },
+    lg: { minWidth: 1280, label: 'Desktop' },
+  },
+})
+
+// payload.config.ts
+imageFramingPlugin({ collections: ['media'], framing, usages: { … } })
+
+// a server component
+frameImage({ framing, media, frames: { base: { aspect: 4 / 5 }, lg: { aspect: 21 / 9 } }, secret })
+// style: { '--frame-pos': …, '--frame-pos-md': … (same as base), '--frame-pos-lg': … }
+```
+
+- `base` always applies; every other breakpoint from its `minWidth` up. A breakpoint without a frame of its own uses the next smaller one's, and the drawer marks its preview with "same as …".
+- The frames are typed from the config: `FrameRule<BreakpointName<typeof framing>>`, and `frames.xl` is a type error when `xl` isn't defined. Frame rules naming an unknown breakpoint also fail at startup.
+- Per-breakpoint crops (art direction) are not supported: a usage has one crop, and each breakpoint only picks the visible part of it.
+
+Apply the variables with the helpers, which use the configured widths:
+
+```ts
+import { framedImageClasses, framePositionCss } from '@wolffc/payload-image-framing/core'
+
+framePositionCss(framing, '.framed')
+// '.framed{object-position:var(--frame-pos)} @media (min-width:768px){.framed{object-position:var(--frame-pos-md)}} @media (min-width:1280px){…}'
+framePositionCss(framing, '.framed', { query: 'container' }) // @container queries instead
+
+framedImageClasses(framing)
+// 'object-[var(--frame-pos)] min-[768px]:object-[var(--frame-pos-md)] min-[1280px]:object-[var(--frame-pos-lg)]'
+```
+
+Tailwind only generates classes it finds in your source, so copy the class string into your code or safelist it. The variables don't care what switches them: with container queries, the frame follows the size of its container instead of the window.
 
 ### Cropped-copy URLs
 
@@ -142,7 +186,7 @@ The plugin:
 
 For every entry in `usages` it also adds an `imageFraming` group (`crop`, `focusArea`) right after that upload field, with a drawer that edits it on the whole photo (the media crop outlined as the default) and previews the result in the usage's frames (the first `frames` rule whose `when` matches the sibling fields), with the covered parts hatched. It throws when a usage path matches no upload field, so a rename can't silently drop the overrides. Uploads inside Lexical rich text are not reachable and use the media framing.
 
-Options: `collections`, `secret` (default: the Payload config's), `usages`, `previewShapes` (the shapes the media editor previews), `editorPath` and `usageEditorPath` (Payload component paths of the editors), `storage` (file access; the default is the local `staticDir`, implement `FramingStorage` for S3 and the like).
+Options: `collections`, `secret` (default: the Payload config's), `usages`, `framing` (the breakpoints, see above), `previewShapes` (the shapes the media editor previews), `editorPath` and `usageEditorPath` (Payload component paths of the editors), `storage` (file access; the default is the local `staticDir`, implement `FramingStorage` for S3 and the like).
 
 ## Payload internals this depends on
 

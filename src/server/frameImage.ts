@@ -1,6 +1,11 @@
 import {
+  DEFAULT_FRAMING,
+  DEFAULT_VARIABLE,
+  type DefaultBreakpoint,
   type Frame,
   type Frames,
+  frameVariable,
+  type FramingConfig,
   type FramingOverride,
   type FramingSource,
   isFullRect,
@@ -8,6 +13,7 @@ import {
   type Rect,
   relativeRect,
   resolveFraming,
+  resolveFrames,
   visibleRect,
 } from '../core/index.js'
 
@@ -36,10 +42,18 @@ export interface FramedResource {
   width?: number | null
 }
 
-export interface FrameImageOptions {
+export interface FrameImageOptions<K extends string = DefaultBreakpoint> {
   media: FrameableMedia
-  /** Without frames the style is empty, e.g. for a photo shown in its own shape. */
-  frames?: Frames
+  /**
+   * The frame per breakpoint. Without frames the style is empty, e.g. for a
+   * photo shown in its own shape.
+   */
+  frames?: Frames<NoInfer<K>>
+  /**
+   * The breakpoints (`defineFraming`), the same as the plugin's `framing`
+   * option. Default: `base` and `md` from 768 px.
+   */
+  framing?: FramingConfig<K>
   /** The usage's own crop and focus area: the `imageFraming` group next to its upload field. */
   override?: FramingOverride
   /** Signs the cropped-copy URLs: the plugin's `secret`, by default the Payload config's. */
@@ -58,7 +72,10 @@ export interface FrameImageOptions {
    * derived URL; without it the URL keeps the media `url`'s origin, or none.
    */
   baseUrl?: string
-  /** Prefix of the CSS variables; the md one gets `-md`. */
+  /**
+   * Prefix of the CSS variables: `base` writes `--frame-pos`, every other
+   * breakpoint `--frame-pos-<name>`.
+   */
   variable?: string
 }
 
@@ -73,8 +90,6 @@ export interface FramedImage {
    */
   focus?: Rect
 }
-
-export const DEFAULT_VARIABLE = '--frame-pos'
 
 /** Payload's file route: `<origin><api>/<collection>/file/<filename>`, maybe with a query. */
 const FILE_ROUTE = /^(.*)\/file\/[^/?#]+(?:[?#].*)?$/
@@ -122,15 +137,16 @@ export const cropUrl = (
  * and the `object-position` of each frame as CSS variables. Only these derived
  * values reach the browser; the rects stay on the server.
  */
-export const frameImage = ({
+export const frameImage = <K extends string = DefaultBreakpoint>({
   frames,
+  framing = DEFAULT_FRAMING as unknown as FramingConfig<K>,
   media,
   override,
   baseUrl,
   routePrefix,
   secret,
   variable = DEFAULT_VARIABLE,
-}: FrameImageOptions): FramedImage => {
+}: FrameImageOptions<K>): FramedImage => {
   const { alt, filename, height, mimeType, updatedAt, url, width } = media
   const resource: FramedResource = {
     alt,
@@ -162,8 +178,10 @@ export const frameImage = ({
       const { x, y } = objectPosition(crop, visible)
       return `${x}% ${y}%`
     }
-    style[variable] = position(frames.base)
-    style[`${variable}-md`] = frames.md ? position(frames.md) : style[variable]
+    // One variable per breakpoint; one without a frame of its own repeats the next smaller one's.
+    for (const { breakpoint, frame } of resolveFrames(framing, frames)) {
+      style[frameVariable(breakpoint.name, variable)] = position(frame)
+    }
   }
 
   return { focus: relativeRect(focus, crop), resource, style }

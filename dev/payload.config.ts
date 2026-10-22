@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
 
-import { cardFrames, heroFrames } from './framing.js'
+import { cardFrames, framing, heroFrames } from './framing.js'
 import { devUser } from './helpers/credentials.js'
 import { seed } from './seed.js'
 
@@ -85,6 +85,7 @@ export default buildConfig({
   plugins: [
     imageFramingPlugin({
       collections: ['media'],
+      framing,
       usages: {
         'pages.hero.image': { frames: heroFrames },
         'block:card.image': { frames: cardFrames },

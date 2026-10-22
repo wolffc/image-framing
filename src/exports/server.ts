@@ -9,7 +9,6 @@ export {
   cropRoutePrefix,
   cropUrl,
   type CropUrlOptions,
-  DEFAULT_VARIABLE,
   type FrameableMedia,
   type FramedImage,
   type FramedResource,

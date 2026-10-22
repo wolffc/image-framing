@@ -5,16 +5,14 @@ body {
   padding: 16px;
 }
 
-/* The frame positions from frameImage(), per breakpoint, without Tailwind. */
+/* object-position and aspect-ratio per breakpoint come from framePositionCss() in page.tsx. */
 .framed {
   height: 100%;
   object-fit: cover;
-  object-position: var(--frame-pos);
   width: 100%;
 }
 
 .frame {
-  aspect-ratio: var(--frame-aspect);
   background: #eee;
   overflow: hidden;
   position: relative;
@@ -24,22 +22,21 @@ body {
   background: linear-gradient(to right, rgb(0 0 0 / 0.6), transparent);
   color: white;
   display: none;
-  inset: 0 55% 0 0;
+  inset: 0 50% 0 0;
   padding: 24px;
   position: absolute;
 }
 
+/* The hero's text covers the left 50 % from md and 40 % from lg (dev/framing.ts). */
 @media (min-width: 768px) {
-  .framed {
-    object-position: var(--frame-pos-md);
-  }
-
-  .frame {
-    aspect-ratio: var(--frame-aspect-md);
-  }
-
   .cover {
     display: block;
+  }
+}
+
+@media (min-width: 1280px) {
+  .cover {
+    inset: 0 60% 0 0;
   }
 }
 

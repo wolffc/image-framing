@@ -1,7 +1,9 @@
 import type { Block, Config, Field, FieldHook, GroupField, UploadField } from 'payload'
 
 import {
+  type DefaultBreakpoint,
   type FrameRule,
+  type FramingConfig,
   type FramingOverride,
   FULL_RECT,
   isCompleteRect,
@@ -11,9 +13,12 @@ import {
 import { rectField } from './fields.js'
 
 /** What the site tells the plugin about one usage of an image. */
-export interface UsageOptions {
-  /** The frames the usage shows the photo in, for the admin preview. */
-  frames?: FrameRule[]
+export interface UsageOptions<K extends string = DefaultBreakpoint> {
+  /**
+   * The frames the usage shows the photo in, per breakpoint, for the admin
+   * preview: the first rule whose `when` matches the sibling fields.
+   */
+  frames?: FrameRule<K>[]
 }
 
 const EMPTY = { x: null, y: null, width: null, height: null }
@@ -35,8 +40,9 @@ const clampOverride: FieldHook = ({ value }) => {
 /** The `imageFraming` group added after a framed upload field. */
 const overrideGroup = (
   field: UploadField,
-  usage: UsageOptions,
+  usage: UsageOptions<string>,
   componentPath: string,
+  framing: FramingConfig<string>,
 ): GroupField => {
   const relationTo = field.relationTo as string
   const uploadCondition = field.admin?.condition
@@ -59,7 +65,12 @@ const overrideGroup = (
         admin: {
           components: {
             Field: {
-              clientProps: { frames: usage.frames ?? [], relationTo, uploadField: field.name },
+              clientProps: {
+                breakpoints: framing.breakpoints,
+                frames: usage.frames ?? [],
+                relationTo,
+                uploadField: field.name,
+              },
               path: componentPath,
             },
           },
@@ -80,9 +91,22 @@ const overrideGroup = (
  */
 export const addUsages = (
   config: Config,
-  usages: Record<string, UsageOptions>,
+  usages: Record<string, UsageOptions<string>>,
   componentPath: string,
+  framing: FramingConfig<string>,
 ): Config => {
+  const names = framing.breakpoints.map((breakpoint) => breakpoint.name)
+  for (const [path, usage] of Object.entries(usages)) {
+    for (const rule of usage.frames ?? []) {
+      const unknown = Object.keys(rule.frames).filter((name) => !names.includes(name))
+      if (unknown.length) {
+        throw new Error(
+          `imageFraming: usage "${path}" has frames for ${unknown.map((n) => `"${n}"`).join(', ')}, ` +
+            `which the framing breakpoints (${names.join(', ')}) don't define`,
+        )
+      }
+    }
+  }
   const found = new Set<string>()
 
   const walkBlock = (block: Block): Block => ({
@@ -100,7 +124,7 @@ export const addUsages = (
         const usage = usages[`${prefix}${named}`]
         if (!usage) return [field]
         found.add(`${prefix}${named}`)
-        return [field, overrideGroup(field, usage, componentPath)]
+        return [field, overrideGroup(field, usage, componentPath, framing)]
       }
       if (field.type === 'tabs') {
         return [

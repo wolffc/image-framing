@@ -15,6 +15,10 @@ export interface PreviewFrame {
   key: string
   label: string
   frame: Frame
+  /** The breakpoint whose frame this preview repeats, when it has none of its own. */
+  fallbackFrom?: string
+  /** Shown after the label, e.g. 'same as Phones'. */
+  note?: string
 }
 
 const coverStyle = ({ edge, size }: CoverArea): React.CSSProperties => ({
@@ -43,10 +47,15 @@ export const PreviewStrip: React.FC<{
     <div data-framing-preview-strip style={{ marginTop: 16 }}>
       <p style={{ fontWeight: 600, margin: '0 0 8px' }}>Preview</p>
       <div style={{ alignItems: 'flex-end', display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-        {frames.map(({ frame, key, label }) => {
+        {frames.map(({ fallbackFrom, frame, key, label, note }) => {
           const placement = previewPlacement(visibleRect({ ...frame, crop, focus, image }))
           return (
-            <figure data-framing-preview={key} key={key} style={{ margin: 0 }}>
+            <figure
+              data-framing-fallback={fallbackFrom}
+              data-framing-preview={key}
+              key={key}
+              style={{ margin: 0, opacity: fallbackFrom ? 0.7 : 1 }}
+            >
               <div
                 style={{
                   aspectRatio: String(frame.aspect),
@@ -83,6 +92,7 @@ export const PreviewStrip: React.FC<{
                 style={{ color: 'var(--theme-elevation-500)', fontSize: 12, marginTop: 4 }}
               >
                 {label}
+                {note && <span style={{ fontStyle: 'italic' }}> · {note}</span>}
               </figcaption>
             </figure>
           )

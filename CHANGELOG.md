@@ -21,3 +21,10 @@ package uses [Semantic Versioning](https://semver.org/).
   `sharp` is no longer a peer dependency.
 - The plugin's `secret` defaults to the Payload config's `secret`.
 - Neutral admin wording instead of "block".
+- Configurable breakpoints: `defineFraming({ breakpoints })`, shared by the
+  plugin (`framing` option; the usage drawer previews each breakpoint and
+  marks fallbacks) and `frameImage({ framing })` (one CSS variable per
+  breakpoint). `Frames` and `FrameRule` are typed from the config. New
+  helpers `framePositionCss` and `framedImageClasses`. Without a config the
+  output is the same as before (`base` and `md` from 768 px).
+- `DEFAULT_VARIABLE` moved from `./server` to `./core`.
