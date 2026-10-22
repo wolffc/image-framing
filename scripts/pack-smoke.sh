@@ -43,6 +43,9 @@ const pkg = { name: 'pack-smoke', private: true, type: 'module', packageManager:
   pnpm: { onlyBuiltDependencies: root.pnpm.onlyBuiltDependencies } }
 require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2))
 "
+# A flat node_modules, as npm makes it: what most apps have, and Payload's
+# SQLite adapter (3.39) finds its native driver only that way.
+echo 'node-linker=hoisted' > .npmrc
 pnpm add --silent "$tarball" "payload@$PAYLOAD_VERSION" "@payloadcms/ui@$PAYLOAD_VERSION" \
   "@payloadcms/next@$PAYLOAD_VERSION" "@payloadcms/db-sqlite@$PAYLOAD_VERSION" "next@$NEXT_VERSION" \
   react@19 react-dom@19 sharp graphql@16 typescript@5 @types/react@19 @types/react-dom@19 @types/node@24 esbuild \
@@ -129,7 +132,7 @@ cp -r "$root/test/consumer/." "$work/consumer/"
 mkdir -p "$work/consumer/app/(payload)"
 cp -r "$root/dev/app/(payload)/." "$work/consumer/app/(payload)/"
 # Reuse the scratch project's installed packages.
-mv node_modules package.json "$work/consumer/"
+mv node_modules package.json .npmrc "$work/consumer/"
 [ -f pnpm-lock.yaml ] && mv pnpm-lock.yaml "$work/consumer/"
 cd "$work/consumer"
 
