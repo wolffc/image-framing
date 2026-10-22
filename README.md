@@ -50,6 +50,7 @@ The plugin registers its admin editors by package path (`@wolffc/payload-image-f
 - Payload `^3.39.0` (3.39 is the lowest version CI checks) with `sharp` in the Payload config; the package doesn't install sharp itself, it uses Payload's
 - React 19; Next.js 15.2.3+ or 16 for the admin panel
 - Node.js 20.18.1 or later
+- TypeScript 5.4 or later, if you use the types (`NoInfer`)
 
 ## Development
 
