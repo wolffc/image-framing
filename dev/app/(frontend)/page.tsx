@@ -1,12 +1,18 @@
 import type { CSSProperties } from 'react'
 
 import config from '@payload-config'
-import { type FrameRule, matchFrames } from '@wolffc/payload-image-framing/core'
+import {
+  type BreakpointName,
+  type FrameRule,
+  framePositionCss,
+  matchFrames,
+  resolveFrames,
+} from '@wolffc/payload-image-framing/core'
 import { type FrameableMedia, frameImage } from '@wolffc/payload-image-framing/server'
 import Link from 'next/link'
 import { getPayload } from 'payload'
 
-import { cardFrames, heroFrames } from '../../framing.js'
+import { cardFrames, framing, heroFrames } from '../../framing.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,19 +24,31 @@ type Usage = {
 } & Record<string, unknown>
 
 /** A media doc rendered in the frames its rules pick, with a plain <img>. */
-const Framed = ({ rules, usage }: { rules: FrameRule[]; usage: Usage }) => {
+const Framed = ({
+  rules,
+  usage,
+}: {
+  rules: FrameRule<BreakpointName<typeof framing>>[]
+  usage: Usage
+}) => {
   if (!usage.image || typeof usage.image !== 'object') return null
   const frames = matchFrames(rules, usage)
   const { resource, style } = frameImage({
+    framing,
     frames,
     media: usage.image,
     override: usage.imageFraming,
     secret,
   })
-  const aspect = {
-    '--frame-aspect': String(frames?.base.aspect ?? 'auto'),
-    '--frame-aspect-md': String((frames?.md ?? frames?.base)?.aspect ?? 'auto'),
-  }
+  // The frame's shape per breakpoint, as variables like the positions.
+  const aspect = Object.fromEntries(
+    frames
+      ? resolveFrames(framing, frames).map(({ breakpoint, frame }) => [
+          breakpoint.name === 'base' ? '--frame-aspect' : `--frame-aspect-${breakpoint.name}`,
+          String(frame.aspect),
+        ])
+      : [],
+  )
   return (
     <div className="frame" style={{ ...style, ...aspect } as CSSProperties}>
       {/* eslint-disable-next-line @next/next/no-img-element -- plain <img> on purpose */}
@@ -43,12 +61,22 @@ export default async function Home() {
   const payload = await getPayload({ config })
   const { docs } = await payload.find({ collection: 'pages', depth: 1, limit: 20 })
 
+  // The positions from frameImage() and the shapes, per breakpoint, without Tailwind.
+  const css = [
+    framePositionCss(framing, '.framed'),
+    framePositionCss(framing, '.frame', { variable: '--frame-aspect' }).replaceAll(
+      'object-position',
+      'aspect-ratio',
+    ),
+  ].join(' ')
+
   return (
     <main>
+      <style>{css}</style>
       <h1>Image framing dev app</h1>
       <p>
         Pages from the <Link href="/admin/collections/pages">admin</Link>, rendered with{' '}
-        <code>frameImage()</code>. Resize the window to see the phone and desktop frames.
+        <code>frameImage()</code>. Resize the window to see the phone, tablet and desktop frames.
       </p>
       {docs.length === 0 && <p>No pages yet. Upload an image to Media and create a page.</p>}
       {docs.map((page) => (

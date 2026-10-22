@@ -4,10 +4,26 @@
  * browser, on the server and in tests unchanged.
  */
 export {
+  type Breakpoint,
+  type BreakpointInfo,
+  type BreakpointName,
+  DEFAULT_FRAMING,
+  DEFAULT_VARIABLE,
+  type DefaultBreakpoint,
+  defineFraming,
+  framedImageClasses,
+  type FramePositionCssOptions,
+  framePositionCss,
+  type Frames,
+  frameVariable,
+  type FramingConfig,
+  type ResolvedFrame,
+  resolveFrames,
+} from './breakpoints.js'
+export {
   type CoverArea,
   type Frame,
   type FrameRule,
-  type Frames,
   matchFrames,
   objectPosition,
   previewPlacement,

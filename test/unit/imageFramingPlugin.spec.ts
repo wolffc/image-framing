@@ -2,6 +2,7 @@
 import type { Config, Field } from 'payload'
 import { describe, expect, it } from 'vitest'
 
+import { DEFAULT_FRAMING, defineFraming } from '../../src/core/index.js'
 import { imageFramingPlugin } from '../../src/payload/index.js'
 
 /**
@@ -154,5 +155,72 @@ describe('imageFramingPlugin requirements', () => {
     expect(() =>
       imageFramingPlugin({ collections: ['media'] })({ ...config(), secret: '' }),
     ).toThrow(/no secret/)
+  })
+})
+
+describe('imageFramingPlugin framing', () => {
+  const usageEditor = (result: Config) => {
+    const group = heroFields(result).find(
+      (field) => 'name' in field && field.name === 'imageFraming',
+    ) as Extract<Field, { type: 'group' }>
+    const editor = group.fields.find((field) => field.type === 'ui') as Extract<
+      Field,
+      { type: 'ui' }
+    >
+    return (editor.admin!.components!.Field as { clientProps: Record<string, unknown> }).clientProps
+  }
+
+  it('hands the breakpoints to the usage editor, the default ones without a config', () => {
+    const framing = defineFraming({
+      breakpoints: { base: { label: 'Phone' }, lg: { minWidth: 1280, label: 'Desktop' } },
+    })
+    const result = imageFramingPlugin({
+      collections: ['media'],
+      secret: 's',
+      framing,
+      usages: {
+        'pages.hero.media': {
+          frames: [{ when: {}, frames: { base: { aspect: 1 }, lg: { aspect: 2 } } }],
+        },
+      },
+    })(config()) as Config
+
+    expect(usageEditor(result).breakpoints).toEqual(framing.breakpoints)
+    expect(usageEditor(apply({ 'pages.hero.media': {} })).breakpoints).toEqual(
+      DEFAULT_FRAMING.breakpoints,
+    )
+  })
+
+  it('fails at startup when a frame rule names a breakpoint the config lacks', () => {
+    const framing = defineFraming({ breakpoints: { base: {} } })
+    // Not an inline literal, so TypeScript can't flag `md` (see the next test): the plugin does.
+    const frames = { base: { aspect: 1 }, md: { aspect: 2 } }
+    const usages = { 'pages.hero.media': { frames: [{ when: {}, frames }] } }
+
+    expect(() =>
+      imageFramingPlugin({ collections: ['media'], framing, secret: 's', usages })(config()),
+    ).toThrow(/usage "pages\.hero\.media" has frames for "md"/)
+  })
+
+  it('types the usage frames from the framing config', () => {
+    const framing = defineFraming({ breakpoints: { base: {} } })
+    const plugin = () =>
+      imageFramingPlugin({
+        collections: ['media'],
+        framing,
+        usages: {
+          'pages.hero.media': {
+            frames: [
+              {
+                when: {},
+                // @ts-expect-error md is not a breakpoint of this config
+                frames: { base: { aspect: 1 }, md: { aspect: 2 } },
+              },
+            ],
+          },
+        },
+      })
+
+    expect(plugin).not.toThrow()
   })
 })

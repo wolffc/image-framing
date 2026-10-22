@@ -4,16 +4,17 @@ import { Button, Drawer, useConfig, useDrawerSlug, useFormFields, useModal } fro
 import React, { useEffect, useState } from 'react'
 
 import {
+  type BreakpointInfo,
   type FrameRule,
   FULL_RECT,
   isCompleteRect,
-  matchFrames,
   resolveFraming,
   type StoredRect,
 } from '../../core/index.js'
 
 import { FramingCanvas } from './FramingCanvas.js'
-import { type PreviewFrame, PreviewStrip } from './PreviewStrip.js'
+import { usagePreviewFrames } from './previewFrames.js'
+import { PreviewStrip } from './PreviewStrip.js'
 import { useRect } from './useRect.js'
 
 interface MediaDoc {
@@ -28,7 +29,9 @@ interface MediaDoc {
 
 export interface UsageFramingFieldProps {
   /** Frame rules of this usage, matched against its sibling fields. */
-  frames?: FrameRule[]
+  frames?: FrameRule<string>[]
+  /** The breakpoints to preview, from the plugin's `framing` option. */
+  breakpoints?: BreakpointInfo[]
   /** The upload collection the image comes from. */
   relationTo: string
   /** Name of the sibling upload field. */
@@ -60,6 +63,7 @@ const useSiblingValues = (prefix: string): Record<string, unknown> => {
  * Empty means "as on the media".
  */
 export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
+  breakpoints,
   frames: rules,
   path = '',
   relationTo,
@@ -105,13 +109,7 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
   const framing = media
     ? resolveFraming(media, { crop: cropField.stored, focusArea: focusField.stored })
     : null
-  const matched = matchFrames(rules, siblings)
-  const previewFrames: PreviewFrame[] = matched
-    ? [
-        { frame: matched.base, key: 'base', label: 'Phones' },
-        ...(matched.md ? [{ frame: matched.md, key: 'md', label: 'Desktop' }] : []),
-      ]
-    : []
+  const previewFrames = usagePreviewFrames(rules, siblings, breakpoints)
 
   return (
     // Pulled up by half a field gap, so the row reads as part of the image above it.

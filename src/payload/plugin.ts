@@ -1,6 +1,11 @@
 import type { CollectionConfig, CollectionSlug, Config, Plugin } from 'payload'
 
-import type { Frame } from '../core/index.js'
+import {
+  DEFAULT_FRAMING,
+  type DefaultBreakpoint,
+  type Frame,
+  type FramingConfig,
+} from '../core/index.js'
 
 import { clearCacheAfterDelete, rebuildSizesAfterChange, validateFraming } from './hooks.js'
 import { cropEndpoint } from './cropEndpoint.js'
@@ -34,7 +39,7 @@ export interface PreviewShape {
   frame: Frame
 }
 
-export interface ImageFramingPluginOptions {
+export interface ImageFramingPluginOptions<K extends string = DefaultBreakpoint> {
   /** Upload collections that get a crop and a focus area. */
   collections: CollectionSlug[]
   /**
@@ -45,7 +50,15 @@ export interface ImageFramingPluginOptions {
   secret?: string
   editorPath?: string
   /** Upload fields that get their own crop and focus area, by path; see `addUsages`. */
-  usages?: Record<string, UsageOptions>
+  // NoInfer: only `framing` decides the breakpoint names, so a frame for an
+  // undefined breakpoint is a type error rather than a new name.
+  usages?: Record<string, UsageOptions<NoInfer<K>>>
+  /**
+   * The responsive breakpoints (`defineFraming`) the usage drawer previews,
+   * one preview each. Pass the same config to `frameImage`. Default: `base`
+   * and `md` from 768 px.
+   */
+  framing?: FramingConfig<K>
   usageEditorPath?: string
   /** Shapes the media editor previews the framing in. */
   previewShapes?: PreviewShape[]
@@ -65,15 +78,16 @@ const defaultStorage = (collection: CollectionConfig): FramingStorage => {
  * Payload's crop tool, which overwrites the original, with crop and focus rects
  * stored as data; generated sizes and cropped copies are made from them.
  */
-export const imageFramingPlugin = ({
+export const imageFramingPlugin = <K extends string = DefaultBreakpoint>({
   collections,
   editorPath = DEFAULT_EDITOR_PATH,
+  framing = DEFAULT_FRAMING as unknown as FramingConfig<K>,
   previewShapes = DEFAULT_PREVIEW_SHAPES,
   secret: secretOption,
   storage = defaultStorage,
   usageEditorPath = DEFAULT_USAGE_EDITOR_PATH,
   usages = {},
-}: ImageFramingPluginOptions): Plugin => {
+}: ImageFramingPluginOptions<K>): Plugin => {
   const withFraming = (collection: CollectionConfig, secret: string): CollectionConfig => {
     const slug = collection.slug as CollectionSlug
     if (!collection.upload) {
@@ -123,6 +137,7 @@ export const imageFramingPlugin = ({
       },
       usages,
       usageEditorPath,
+      framing,
     )
   }
 }

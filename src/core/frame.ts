@@ -1,3 +1,4 @@
+import type { DefaultBreakpoint, Frames } from './breakpoints.js'
 import { FULL_RECT, type Rect } from './rect.js'
 
 /**
@@ -16,27 +17,21 @@ export interface Frame {
   cover?: CoverArea[]
 }
 
-/** The frame a layout shows the photo in on phones (`base`) and from its `md` breakpoint up. */
-export interface Frames {
-  base: Frame
-  md?: Frame
-}
-
 /**
  * Which frames a usage shows, by the values of its sibling fields, e.g. the
  * layout select next to the image: `{ when: { layout: 'fullBleed', align: 'center' }, frames }`.
  * Plain data, so the admin can use the same rules as the site.
  */
-export interface FrameRule {
+export interface FrameRule<K extends string = DefaultBreakpoint> {
   when: Record<string, string | readonly string[]>
-  frames: Frames
+  frames: Frames<K>
 }
 
 /** The frames of the first rule whose fields all match `data`. */
-export const matchFrames = (
-  rules: readonly FrameRule[] | undefined,
+export const matchFrames = <K extends string = DefaultBreakpoint>(
+  rules: readonly FrameRule<K>[] | undefined,
   data: Record<string, unknown> | null | undefined,
-): Frames | undefined =>
+): Frames<K> | undefined =>
   data
     ? rules?.find((rule) =>
         Object.entries(rule.when).every(([field, expected]) =>
