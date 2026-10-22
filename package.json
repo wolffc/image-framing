@@ -71,6 +71,8 @@
     "generate:types": "pnpm dev:payload generate:types",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "prepack": "pnpm build",
+    "prepublishOnly": "node scripts/require-pnpm.mjs",
     "test": "vitest run",
     "test:pack": "bash scripts/pack-smoke.sh",
     "test:watch": "vitest",

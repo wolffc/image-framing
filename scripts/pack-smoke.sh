@@ -15,8 +15,7 @@ dev_version() { node -p "require('./package.json').devDependencies['$1']"; }
 PAYLOAD_VERSION="${PAYLOAD_VERSION:-$(dev_version payload)}"
 NEXT_VERSION="${NEXT_VERSION:-$(dev_version next)}"
 
-pnpm build >/dev/null
-# pnpm, not npm: only pnpm applies publishConfig.exports (dist instead of src).
+# prepack builds dist/. pnpm, not npm: only pnpm applies publishConfig.exports (dist instead of src).
 pnpm pack --pack-destination "$work" >/dev/null
 tarball="$(ls "$work"/*.tgz)"
 
