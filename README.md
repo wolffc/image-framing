@@ -12,28 +12,37 @@ Work in progress: being extracted from weflyhome.com into a standalone package. 
 
 ## Layout
 
-| Path           | Contents                                                                                                                                                                                                        | May import                                             |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `src/core/`    | Rect types and validation, override resolution (`resolveFraming(media, override)`), the framing algorithm (`visibleRect`, `objectPosition`), frame rules (`matchFrames`), preview placement, signed crop tokens | Nothing but itself and `node:crypto`                   |
-| `src/payload/` | `imageFramingPlugin()`, the fields, hooks, the cropped-copy route, the storage interface and the admin editor                                                                                                   | `core/`, `payload`, `@payloadcms/ui`, `sharp`, `react` |
-| `src/next/`    | `frameImage()`: a media doc, an optional override and frame shapes to the cropped URL and `object-position` CSS variables                                                                                       | `core/`                                                |
-| `src/exports/` | Entry points that only re-export (`./server`, `./client`)                                                                                                                                                       |                                                        |
-| `dev/`         | A Payload + Next app for development and tests (SQLite)                                                                                                                                                         | the package by its name                                |
-| `test/unit/`   | Vitest unit tests                                                                                                                                                                                               |                                                        |
-| `examples/`    | Example setups (to come)                                                                                                                                                                                        |                                                        |
-| `scripts/`     | `pack-smoke.sh`: packs the package and installs it into a scratch project                                                                                                                                       |                                                        |
+| Path                 | Contents                                                                                                                                                                                    | May import                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `src/core/`          | Rect types and validation, override resolution (`resolveFraming(media, override)`), the framing algorithm (`visibleRect`, `objectPosition`), frame rules (`matchFrames`), preview placement | Nothing but itself: runs in the browser      |
+| `src/server/`        | `frameImage()` (a media doc, an optional override and frame shapes to the cropped URL and `object-position` CSS variables) and the signed crop tokens                                       | `core/`, `node:crypto`                       |
+| `src/payload/`       | `imageFramingPlugin()`, the fields, hooks, the cropped-copy route and the storage interface                                                                                                 | `core/`, `server/`, `payload`, `sharp`, Node |
+| `src/payload/admin/` | The admin components (`'use client'`)                                                                                                                                                       | `core/`, `react`, `@payloadcms/ui`           |
+| `src/next/`          | Next.js-only helpers (to come)                                                                                                                                                              | `core/`, `server/`, `next`                   |
+| `src/exports/`       | Entry points that only re-export (`./server`, `./client`)                                                                                                                                   |                                              |
+| `dev/`               | A Payload + Next app for development and tests (SQLite)                                                                                                                                     | the package by its name                      |
+| `test/unit/`         | Vitest unit tests                                                                                                                                                                           |                                              |
+| `test/consumer/`     | A fresh Payload + Next app the pack test builds against the packed package                                                                                                                  | the package by its name                      |
+| `examples/`          | Example setups (to come)                                                                                                                                                                    |                                              |
+| `scripts/`           | `pack-smoke.sh`: packs the package and installs it into a scratch project                                                                                                                   |                                              |
 
-Entry points:
+`test/unit/imageFramingBoundary.spec.ts` checks the import rules above, and that every admin module is marked `'use client'`.
 
-| Import                                 | Contents                                                                           |
-| -------------------------------------- | ---------------------------------------------------------------------------------- |
-| `@wolffc/payload-image-framing`        | `imageFramingPlugin`, its options, `FramingStorage`, `localDiskStorage`            |
-| `@wolffc/payload-image-framing/core`   | The framing model and algorithm                                                    |
-| `@wolffc/payload-image-framing/server` | `frameImage`, `cropUrl`, `cropToken`/`readCropToken` (use the secret: server only) |
-| `@wolffc/payload-image-framing/client` | The admin components (`'use client'`)                                              |
-| `@wolffc/payload-image-framing/next`   | `frameImage`, as before; Next-specific helpers will live here                      |
+## Entry points
 
-`test/unit/imageFramingBoundary.spec.ts` checks the import rules above.
+| Import                                 | Contents                                                                                                                  | Where                                      |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `@wolffc/payload-image-framing`        | `imageFramingPlugin`, its options, `FramingStorage`, `localDiskStorage`                                                   | Payload config                             |
+| `@wolffc/payload-image-framing/core`   | Rects, `resolveFraming`, `visibleRect`, `objectPosition`, `matchFrames`, `previewPlacement`, `relativeRect` and the types | Anywhere, including client components      |
+| `@wolffc/payload-image-framing/server` | `frameImage`, `cropUrl`, `cropToken`/`readCropToken`                                                                      | Server only: they use the secret           |
+| `@wolffc/payload-image-framing/client` | `FramingEditor`, `UsageFramingField`, `FramingCanvas`, `PreviewStrip` (`'use client'`)                                    | Admin panel, loaded through the import map |
+| `@wolffc/payload-image-framing/next`   | Next.js helpers; for now it re-exports `frameImage`                                                                       | Next server components                     |
+
+Every entry lists its exports explicitly; `test/unit/publicApi.spec.ts` snapshots them, so a change to the public API shows up in review.
+
+The plugin registers its admin editors by package path (`@wolffc/payload-image-framing/client#FramingEditor`), so after installing or updating the package run `payload generate:importmap`. The `editorPath` and `usageEditorPath` options are only needed for your own editors.
+
+`./server` doesn't import `server-only`: that package throws outside Next's server bundles, which would break the helpers in plain Node, tests or other frameworks. It does import `node:crypto`, so a bundler without Node polyfills fails to build a browser bundle that pulls it in; Next polyfills `crypto`, so in Next keep `./server` out of client components yourself. The secret must stay on the server.
 
 ## Requirements
 

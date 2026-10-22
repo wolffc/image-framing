@@ -3,8 +3,7 @@
 import { FieldLabel, useFormFields } from '@payloadcms/ui'
 import React from 'react'
 
-// Not '../../core': its index also exports the URL signing, which needs Node's crypto.
-import { FULL_RECT, resolveFraming } from '../../core/rect.js'
+import { FULL_RECT, resolveFraming } from '../../core/index.js'
 
 import { FramingCanvas } from './FramingCanvas.js'
 import { type PreviewFrame, PreviewStrip } from './PreviewStrip.js'

@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Packs the package like a release would and installs the tarball into a
-# scratch project: checks the file list, imports every entry point in Node
-# and typechecks an import of every entry point.
+# scratch project: checks the file list, imports every entry point in Node,
+# typechecks an import of every entry point, and builds a Payload + Next app
+# that uses the plugin with its defaults (test/consumer).
+#
+# SKIP_APP_BUILD=1 skips the app build, the slow part.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -40,8 +43,12 @@ const pkg = { name: 'pack-smoke', private: true, type: 'module', packageManager:
   pnpm: { onlyBuiltDependencies: root.pnpm.onlyBuiltDependencies } }
 require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2))
 "
+# A flat node_modules, as npm makes it: what most apps have, and Payload's
+# SQLite adapter (3.39) finds its native driver only that way.
+echo 'node-linker=hoisted' > .npmrc
 pnpm add --silent "$tarball" "payload@$PAYLOAD_VERSION" "@payloadcms/ui@$PAYLOAD_VERSION" \
-  "next@$NEXT_VERSION" react@19 react-dom@19 sharp graphql@16 typescript@5 @types/react@19 @types/node@24 \
+  "@payloadcms/next@$PAYLOAD_VERSION" "@payloadcms/db-sqlite@$PAYLOAD_VERSION" "next@$NEXT_VERSION" \
+  react@19 react-dom@19 sharp graphql@16 typescript@5 @types/react@19 @types/react-dom@19 @types/node@24 esbuild \
   >/dev/null
 
 # Every entry point exports these names, at runtime and in its types.
@@ -107,3 +114,38 @@ cat > tsconfig.json <<'JSON'
 JSON
 pnpm exec tsc -p tsconfig.json
 echo "ok   types of every entry point"
+
+echo "== bundling ./core for the browser without Node polyfills"
+# Bundlers like Next polyfill Node modules quietly; esbuild for the browser fails on them.
+echo "import * as core from '@wolffc/payload-image-framing/core'; console.log(core)" > browser.mjs
+pnpm exec esbuild browser.mjs --bundle --platform=browser --format=esm --log-level=error --outfile=browser.out.js
+echo "ok   ./core bundles for the browser"
+
+if [ "${SKIP_APP_BUILD:-}" = "1" ]; then
+  echo "skipped app build (SKIP_APP_BUILD=1)"
+  exit 0
+fi
+
+echo "== building a Payload + Next app that uses the package (test/consumer)"
+mkdir "$work/consumer"
+cp -r "$root/test/consumer/." "$work/consumer/"
+mkdir -p "$work/consumer/app/(payload)"
+cp -r "$root/dev/app/(payload)/." "$work/consumer/app/(payload)/"
+# Reuse the scratch project's installed packages.
+mv node_modules package.json .npmrc "$work/consumer/"
+[ -f pnpm-lock.yaml ] && mv pnpm-lock.yaml "$work/consumer/"
+cd "$work/consumer"
+
+echo 'export const importMap = {}' > 'app/(payload)/admin/importMap.js'
+PAYLOAD_CONFIG_PATH=payload.config.ts pnpm exec payload generate:importmap >/dev/null
+for component in FramingEditor UsageFramingField; do
+  if ! grep -q "'@wolffc/payload-image-framing/client#$component'\|\"@wolffc/payload-image-framing/client#$component\"" 'app/(payload)/admin/importMap.js'; then
+    echo "The import map has no @wolffc/payload-image-framing/client#$component:" >&2
+    cat 'app/(payload)/admin/importMap.js' >&2
+    exit 1
+  fi
+done
+echo "ok   import map has both editors from @wolffc/payload-image-framing/client"
+
+NEXT_TELEMETRY_DISABLED=1 pnpm exec next build > build.log 2>&1 || { tail -60 build.log >&2; exit 1; }
+echo "ok   next build (admin with the package's editors, ./core in a client component)"

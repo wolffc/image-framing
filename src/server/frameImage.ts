@@ -1,5 +1,4 @@
 import {
-  cropToken,
   type Frame,
   type Frames,
   type FramingOverride,
@@ -11,6 +10,8 @@ import {
   resolveFraming,
   visibleRect,
 } from '../core/index.js'
+
+import { cropToken } from './cropToken.js'
 
 /** The media fields the framing reads, besides the crop and focus area. */
 export interface FrameableMedia extends FramingSource {
@@ -34,8 +35,6 @@ export interface FramedResource {
   url: string
   width?: number | null
 }
-
-export type { Frames }
 
 export interface FrameImageOptions {
   media: FrameableMedia
