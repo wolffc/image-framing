@@ -1,10 +1,10 @@
 import type { CollectionSlug, Endpoint } from 'payload'
 import sharp from 'sharp'
 
-import { readCropToken } from '../core'
+import { readCropToken } from '../core/index.js'
 
-import { type MediaDoc, toPixels } from './sizes'
-import type { FramingStorage } from './storage'
+import { type MediaDoc, toPixels } from './sizes.js'
+import type { FramingStorage } from './storage.js'
 
 export const CROP_ENDPOINT_PATH = '/crop/:id/:token/:filename'
 

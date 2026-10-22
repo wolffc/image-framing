@@ -10,7 +10,7 @@ import {
   relativeRect,
   resolveFraming,
   visibleRect,
-} from '../core'
+} from '../core/index.js'
 
 /** The media fields the framing reads, besides the crop and focus area. */
 export interface FrameableMedia extends FramingSource {

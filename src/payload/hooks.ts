@@ -15,10 +15,10 @@ import {
   rectCentre,
   resolveFraming,
   type StoredRect,
-} from '../core'
+} from '../core/index.js'
 
-import { type MediaDoc, rebuildSizes } from './sizes'
-import type { FramingStorage } from './storage'
+import { type MediaDoc, rebuildSizes } from './sizes.js'
+import type { FramingStorage } from './storage.js'
 
 const asRect = (rect: StoredRect): Rect | null =>
   isCompleteRect(rect) ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null

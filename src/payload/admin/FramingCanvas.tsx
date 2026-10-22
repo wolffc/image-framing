@@ -3,7 +3,7 @@
 import React, { useRef, useState } from 'react'
 
 // Not '../../core': its index also exports the URL signing, which needs Node's crypto.
-import { MIN_SIZE, normalizeRect, type Rect } from '../../core/rect'
+import { MIN_SIZE, normalizeRect, type Rect } from '../../core/rect.js'
 
 type Target = 'crop' | 'focus'
 type Handle = 'move' | 'nw' | 'ne' | 'sw' | 'se'

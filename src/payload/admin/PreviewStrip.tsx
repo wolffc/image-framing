@@ -3,8 +3,8 @@
 import React from 'react'
 
 // Not '../../core': its index also exports the URL signing, which needs Node's crypto.
-import { type CoverArea, type Frame, previewPlacement, visibleRect } from '../../core/frame'
-import type { Rect } from '../../core/rect'
+import { type CoverArea, type Frame, previewPlacement, visibleRect } from '../../core/frame.js'
+import type { Rect } from '../../core/rect.js'
 
 export interface PreviewFrame {
   /** Stable key, also `data-framing-preview` for tests. */

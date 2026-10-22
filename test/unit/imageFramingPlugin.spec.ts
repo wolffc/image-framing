@@ -2,7 +2,7 @@
 import type { Config, Field } from 'payload'
 import { describe, expect, it } from 'vitest'
 
-import { imageFramingPlugin } from '../../src/plugins/imageFraming/payload'
+import { imageFramingPlugin } from '../../src/payload/index.js'
 
 /**
  * How the plugin attaches per-usage overrides (#316, part 2): an

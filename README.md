@@ -1,20 +1,44 @@
-# Image framing
+# Payload image framing
 
-Non-destructive crop and focus areas for Payload upload collections, and the helpers to render them with `next/image` (#316).
+Non-destructive crop and focus areas for [Payload CMS](https://payloadcms.com) upload collections, and the helpers to render them. Developed for weflyhome.com and published as `@wolffc/payload-image-framing` (MIT).
 
 - **Crop area**: the part of the photo the site shows, in every size and shape, unless a usage sets its own. The original stays untouched, so a crop can be widened again later.
 - **Focus area**: the subject. Every frame keeps it in view where the shape allows, and away from the parts of the frame that layouts cover with text.
 - **Per-usage override**: a block (or any configured upload field) can set its own crop and focus area. The media crop is only the default: an override may be narrower or wider, up to the whole photo. Overrides are kept inside the photo when saved.
 
-## Layers
+## Status
 
-| Layer | Contents | May import |
+Work in progress: being extracted from weflyhome.com into a standalone package. Not on npm yet; see the [issues](https://github.com/wolffc/image-framing/issues) for the road to 1.0.
+
+## Layout
+
+| Path | Contents | May import |
 | --- | --- | --- |
-| `core/` | Rect types and validation, override resolution (`resolveFraming(media, override)`), the framing algorithm (`visibleRect`, `objectPosition`), frame rules (`matchFrames`), preview placement, signed crop tokens | Nothing but itself and `node:crypto` |
-| `payload/` | `imageFramingPlugin()`, the fields, hooks, the cropped-copy route, the storage interface and the admin editor | `core/`, `payload`, `@payloadcms/ui`, `sharp`, `react` |
-| `next/` | `frameImage()`: a media doc, an optional override and frame shapes to the cropped URL and `object-position` CSS variables | `core/` |
+| `src/core/` | Rect types and validation, override resolution (`resolveFraming(media, override)`), the framing algorithm (`visibleRect`, `objectPosition`), frame rules (`matchFrames`), preview placement, signed crop tokens | Nothing but itself and `node:crypto` |
+| `src/payload/` | `imageFramingPlugin()`, the fields, hooks, the cropped-copy route, the storage interface and the admin editor | `core/`, `payload`, `@payloadcms/ui`, `sharp`, `react` |
+| `src/next/` | `frameImage()`: a media doc, an optional override and frame shapes to the cropped URL and `object-position` CSS variables | `core/` |
+| `src/exports/` | Entry points that only re-export (`./client`) | |
+| `dev/` | A Payload + Next app for development and tests (SQLite) | the package by its name |
+| `test/unit/` | Vitest unit tests | |
 
-Nothing here imports site code; `tests/unit/imageFramingBoundary.spec.ts` enforces it.
+Entry points: `@wolffc/payload-image-framing` (plugin), `/core`, `/next`, `/client` (admin components). `test/unit/imageFramingBoundary.spec.ts` checks the import rules above.
+
+## Development
+
+Everything runs in Docker; the host needs only Docker with the compose plugin.
+
+```bash
+./dev.sh start        # dev app on http://localhost:3000 (admin: /admin, logs in automatically)
+./dev.sh test         # unit tests
+./dev.sh typecheck    # tsc on src/, test/ and dev/
+./dev.sh build        # dist/ (SWC + tsc declarations)
+./dev.sh shell        # a shell in the container; ./dev.sh <cmd> runs any command
+./dev.sh reset        # remove containers and volumes
+```
+
+`PORT=3100 ./dev.sh start` uses another host port. After changing the plugin's admin components or paths, run `./dev.sh pnpm generate:importmap`; after changing the dev collections, `./dev.sh pnpm generate:types`.
+
+The dev app (`dev/payload.config.ts`) has a `media` collection with three image sizes and a `pages` collection with a framed hero image and a `card` block. The frontend at `/` renders the pages with `frameImage()` and a plain `<img>`.
 
 ## Use
 
@@ -60,4 +84,4 @@ The admin editors use only exported `@payloadcms/ui` hooks and components: `useF
 - the generated sizes' `filename` in `doc.sizes`, which it overwrites;
 - the REST route `<api>/<collection>/<id>?depth=0`, which the usage drawer reads the media document from.
 
-Check these after a Payload upgrade; `tests/int/imageFraming.int.spec.ts` covers them.
+Check these after a Payload upgrade; the integration test (`dev/imageFraming.int.spec.ts`, being ported to the dev app) covers them.

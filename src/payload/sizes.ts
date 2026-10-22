@@ -1,9 +1,9 @@
 import type { FileData, ImageSize, TypeWithID } from 'payload'
 import sharp, { type ResizeOptions } from 'sharp'
 
-import { type Framing, visibleRect } from '../core'
+import { type Framing, visibleRect } from '../core/index.js'
 
-import type { FramingStorage } from './storage'
+import type { FramingStorage } from './storage.js'
 
 type SizeData = { filename?: string | null; filesize?: number | null; height?: number | null; width?: number | null }
 export type MediaDoc = TypeWithID &

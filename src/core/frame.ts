@@ -1,4 +1,4 @@
-import { FULL_RECT, type Rect } from './rect'
+import { FULL_RECT, type Rect } from './rect.js'
 
 /**
  * A part of the frame that text covers, as a band along one edge. `size` is

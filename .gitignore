@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+*.tsbuildinfo
+
+# dev app
+dev/.next/
+dev/next-env.d.ts
+dev/.data/
+dev/media/
+.env
+.env*.local
+
+# tests
+coverage/
+test-results/
+playwright-report/
+blob-report/
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+pnpm-debug.log*

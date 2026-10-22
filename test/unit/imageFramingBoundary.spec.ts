@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest'
  * it imports nothing but itself and Node's crypto.
  */
 
-const moduleDir = path.resolve(__dirname, '../../src/plugins/imageFraming')
+const moduleDir = path.resolve(import.meta.dirname, '../../src')
 
 const sourceFiles = (dir: string): string[] =>
   fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

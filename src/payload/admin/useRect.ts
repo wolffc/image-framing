@@ -2,7 +2,7 @@
 
 import { useField } from '@payloadcms/ui'
 
-import type { Rect, StoredRect } from '../../core/rect'
+import type { Rect, StoredRect } from '../../core/rect.js'
 
 const KEYS = ['x', 'y', 'width', 'height'] as const
 

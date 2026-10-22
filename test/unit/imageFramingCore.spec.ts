@@ -12,7 +12,7 @@ import {
   previewPlacement,
   resolveFraming,
   visibleRect,
-} from '../../src/plugins/imageFraming/core'
+} from '../../src/core/index.js'
 
 /**
  * The framing algorithm (#316): which part of a photo a frame of a given shape

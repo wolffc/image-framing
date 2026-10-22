@@ -1,0 +1,29 @@
+# Everything runs in containers. Use ./dev.sh rather than calling this directly.
+name: image-framing
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: docker/dev.Dockerfile
+    image: image-framing-dev
+    working_dir: /app
+    init: true
+    environment:
+      DATABASE_URI: ${DATABASE_URI:-file:/app/dev/.data/dev.db}
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET:-dev-secret-change-me}
+      NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:-http://localhost:3000}
+      # Polling keeps hot reload working on Docker Desktop (macOS/Windows) bind mounts.
+      WATCHPACK_POLLING: ${WATCHPACK_POLLING:-false}
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - next_cache:/app/dev/.next
+      - pnpm_store:/pnpm/store
+
+volumes:
+  node_modules:
+  next_cache:
+  pnpm_store:

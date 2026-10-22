@@ -4,11 +4,11 @@ import { FieldLabel, useFormFields } from '@payloadcms/ui'
 import React from 'react'
 
 // Not '../../core': its index also exports the URL signing, which needs Node's crypto.
-import { FULL_RECT, resolveFraming } from '../../core/rect'
+import { FULL_RECT, resolveFraming } from '../../core/rect.js'
 
-import { FramingCanvas } from './FramingCanvas'
-import { type PreviewFrame, PreviewStrip } from './PreviewStrip'
-import { useRect } from './useRect'
+import { FramingCanvas } from './FramingCanvas.js'
+import { type PreviewFrame, PreviewStrip } from './PreviewStrip.js'
+import { useRect } from './useRect.js'
 
 /**
  * Crop and focus area editor for a media document (#316). The crop area is

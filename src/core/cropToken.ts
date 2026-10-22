@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 
-import type { Rect } from './rect'
+import type { Rect } from './rect.js'
 
 /**
  * The path segment that names a cropped copy: the rect in hundredths of a

@@ -1,21 +1,20 @@
 import type { CollectionConfig, CollectionSlug, Config, Plugin } from 'payload'
 
-import type { Frame } from '../core'
+import type { Frame } from '../core/index.js'
 
-import { clearCacheAfterDelete, rebuildSizesAfterChange, validateFraming } from './hooks'
-import { cropEndpoint } from './cropEndpoint'
-import { mediaFramingFields } from './fields'
-import type { MediaDoc } from './sizes'
-import { type FramingStorage, localDiskStorage } from './storage'
-import { addUsages, type UsageOptions } from './usages'
+import { clearCacheAfterDelete, rebuildSizesAfterChange, validateFraming } from './hooks.js'
+import { cropEndpoint } from './cropEndpoint.js'
+import { mediaFramingFields } from './fields.js'
+import type { MediaDoc } from './sizes.js'
+import { type FramingStorage, localDiskStorage } from './storage.js'
+import { addUsages, type UsageOptions } from './usages.js'
 
 /**
- * Where the admin editor lives, as a Payload component path relative to
- * `admin.importMap.baseDir`. Pass your own when the module sits elsewhere.
+ * Where the admin editors live, as Payload component paths. They resolve
+ * through the import map, so run `payload generate:importmap` after installing.
  */
-export const DEFAULT_EDITOR_PATH = '/plugins/imageFraming/payload/admin/FramingEditor#FramingEditor'
-export const DEFAULT_USAGE_EDITOR_PATH =
-  '/plugins/imageFraming/payload/admin/UsageFramingField#UsageFramingField'
+export const DEFAULT_EDITOR_PATH = '@wolffc/payload-image-framing/client#FramingEditor'
+export const DEFAULT_USAGE_EDITOR_PATH = '@wolffc/payload-image-framing/client#UsageFramingField'
 
 /** The frame shapes the media editor previews: the shapes sites commonly crop to. */
 export const DEFAULT_PREVIEW_SHAPES: PreviewShape[] = [

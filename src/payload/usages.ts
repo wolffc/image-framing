@@ -1,8 +1,8 @@
 import type { Block, Config, Field, FieldHook, GroupField, UploadField } from 'payload'
 
-import { type FrameRule, type FramingOverride, FULL_RECT, isCompleteRect, normalizeRect } from '../core'
+import { type FrameRule, type FramingOverride, FULL_RECT, isCompleteRect, normalizeRect } from '../core/index.js'
 
-import { rectField } from './fields'
+import { rectField } from './fields.js'
 
 /** What the site tells the plugin about one usage of an image. */
 export interface UsageOptions {

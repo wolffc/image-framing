@@ -4,12 +4,12 @@ import { Button, Drawer, useConfig, useDrawerSlug, useFormFields, useModal } fro
 import React, { useEffect, useState } from 'react'
 
 // Not '../../core': its index also exports the URL signing, which needs Node's crypto.
-import { type FrameRule, matchFrames } from '../../core/frame'
-import { FULL_RECT, isCompleteRect, resolveFraming, type StoredRect } from '../../core/rect'
+import { type FrameRule, matchFrames } from '../../core/frame.js'
+import { FULL_RECT, isCompleteRect, resolveFraming, type StoredRect } from '../../core/rect.js'
 
-import { FramingCanvas } from './FramingCanvas'
-import { type PreviewFrame, PreviewStrip } from './PreviewStrip'
-import { useRect } from './useRect'
+import { FramingCanvas } from './FramingCanvas.js'
+import { type PreviewFrame, PreviewStrip } from './PreviewStrip.js'
+import { useRect } from './useRect.js'
 
 interface MediaDoc {
   crop?: StoredRect

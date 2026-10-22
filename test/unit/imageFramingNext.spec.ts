@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { cropToken, FULL_RECT, readCropToken } from '../../src/plugins/imageFraming/core'
-import { frameImage } from '../../src/plugins/imageFraming/next'
+import { cropToken, FULL_RECT, readCropToken } from '../../src/core/index.js'
+import { frameImage } from '../../src/next/index.js'
 
 /**
  * What the site gets for a framed image (#316): the URL of a copy cropped to
