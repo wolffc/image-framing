@@ -1,6 +1,14 @@
 'use client'
 
-import { Button, Drawer, useConfig, useDrawerSlug, useFormFields, useModal } from '@payloadcms/ui'
+import {
+  Button,
+  Drawer,
+  useConfig,
+  useDocumentInfo,
+  useDrawerSlug,
+  useFormFields,
+  useModal,
+} from '@payloadcms/ui'
 import React, { useEffect, useState } from 'react'
 
 import {
@@ -13,6 +21,7 @@ import {
 } from '../../core/index.js'
 
 import { FramingCanvas } from './FramingCanvas.js'
+import { fieldAccess } from './permissions.js'
 import { usagePreviewFrames } from './previewFrames.js'
 import { PreviewStrip } from './PreviewStrip.js'
 import { useRect } from './useRect.js'
@@ -32,6 +41,12 @@ export interface UsageFramingFieldProps {
   frames?: FrameRule<string>[]
   /** The breakpoints to preview, from the plugin's `framing` option. */
   breakpoints?: BreakpointInfo[]
+  /** The usage's `label` option: the drawer's title. */
+  label?: string
+  /** The usage's `admin.description`. */
+  description?: string
+  /** Set by Payload, e.g. for a locked document. */
+  readOnly?: boolean
   /** The upload collection the image comes from. */
   relationTo: string
   /** Name of the sibling upload field. */
@@ -57,6 +72,24 @@ const useSiblingValues = (prefix: string): Record<string, unknown> => {
 }
 
 /**
+ * The block types of the rows on `path` (e.g. `layout.0` in
+ * `layout.0.imageFraming`), for looking up block permissions. Selected as a
+ * string, so the field only re-renders when one changes.
+ */
+const useBlockTypes = (path: string): Record<string, string | undefined> => {
+  const segments = path.split('.')
+  const rows = segments.flatMap((segment, index) =>
+    /^\d+$/.test(segment) ? [segments.slice(0, index + 1).join('.')] : [],
+  )
+  const json = useFormFields(([fields]) =>
+    JSON.stringify(
+      Object.fromEntries(rows.map((row) => [row, fields[`${row}.blockType`]?.value as string])),
+    ),
+  )
+  return JSON.parse(json) as Record<string, string | undefined>
+}
+
+/**
  * One usage's own crop and focus area: a summary, and a drawer with the
  * editor (the whole photo, with the media's crop outlined as the default) and
  * a preview in the usage's frames.
@@ -64,12 +97,23 @@ const useSiblingValues = (prefix: string): Record<string, unknown> => {
  */
 export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
   breakpoints,
+  description,
   frames: rules,
+  label,
   path = '',
+  readOnly: readOnlyProp = false,
   relationTo,
   uploadField,
 }) => {
   const groupPath = path.replace(/\.[^.]+$/, '')
+  // The editor is a UI field without access of its own: it follows its group's.
+  const { docPermissions, id } = useDocumentInfo()
+  const blockTypes = useBlockTypes(groupPath)
+  const access = fieldAccess(docPermissions, groupPath, {
+    blockTypeAt: (rowPath) => blockTypes[rowPath],
+    isNew: !id,
+  })
+  const readOnly = readOnlyProp || !access.edit
   const siblingPrefix = groupPath.includes('.') ? groupPath.replace(/[^.]+$/, '') : ''
   const cropField = useRect(`${groupPath}.crop`)
   const focusField = useRect(`${groupPath}.focusArea`)
@@ -102,7 +146,7 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
     }
   }, [config.routes.api, config.serverURL, mediaId, relationTo])
 
-  if (!mediaId) return null
+  if (!mediaId || !access.read) return null
 
   const custom = isCompleteRect(cropField.stored) || isCompleteRect(focusField.stored)
   const mediaFraming = media ? resolveFraming(media) : null
@@ -125,7 +169,7 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
           onClick={() => openModal(drawerSlug)}
           size="small"
         >
-          Adjust the framing here
+          {readOnly ? 'Show the framing here' : 'Adjust the framing here'}
         </Button>
         <span>
           <strong>{custom ? 'Custom framing' : 'Default framing'}</strong>{' '}
@@ -136,10 +180,16 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
           </span>
         </span>
       </div>
+      {description && (
+        <p className="field-description" style={{ margin: '4px 0 0' }}>
+          {description}
+        </p>
+      )}
 
-      <Drawer slug={drawerSlug} title="Framing for this usage">
+      <Drawer slug={drawerSlug} title={label ?? 'Framing for this usage'}>
         {/* Room below the buttons, so they don't sit on the window's edge when the drawer scrolls. */}
         <div data-image-framing-drawer style={{ paddingBottom: 48 }}>
+          {description && <p style={{ marginTop: 0 }}>{description}</p>}
           <p style={{ color: 'var(--theme-elevation-500)', marginTop: 0 }}>
             Set the crop and focus area for this usage only. The crop can be narrower or wider than
             the one set on the image (dotted outline), up to the whole photo. The preview shows the
@@ -156,6 +206,7 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
                   cropField.set(next.crop)
                   focusField.set(next.focus)
                 }}
+                readOnly={readOnly}
                 url={media.url}
               />
               <PreviewStrip
@@ -178,17 +229,19 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
             >
               Done
             </button>
-            <button
-              className="btn btn--style-secondary btn--size-medium"
-              onClick={() => {
-                cropField.clear()
-                focusField.clear()
-              }}
-              style={{ margin: 0 }}
-              type="button"
-            >
-              Use the image&apos;s framing
-            </button>
+            {!readOnly && (
+              <button
+                className="btn btn--style-secondary btn--size-medium"
+                onClick={() => {
+                  cropField.clear()
+                  focusField.clear()
+                }}
+                style={{ margin: 0 }}
+                type="button"
+              >
+                Use the image&apos;s framing
+              </button>
+            )}
           </div>
         </div>
       </Drawer>

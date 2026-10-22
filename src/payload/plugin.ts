@@ -1,4 +1,4 @@
-import type { CollectionConfig, CollectionSlug, Config, Plugin } from 'payload'
+import type { CollectionConfig, CollectionSlug, Config, ImageSize, Plugin } from 'payload'
 
 import {
   DEFAULT_FRAMING,
@@ -9,7 +9,7 @@ import {
 
 import { clearCacheAfterDelete, rebuildSizesAfterChange, validateFraming } from './hooks.js'
 import { cropEndpoint } from './cropEndpoint.js'
-import { mediaFramingFields } from './fields.js'
+import { dataNames, type FramingAccess, MEDIA_FIELD_NAMES, mediaFramingFields } from './fields.js'
 import { assertSharp } from './sharp.js'
 import type { MediaDoc } from './sizes.js'
 import { type FramingStorage, localDiskStorage } from './storage.js'
@@ -39,17 +39,54 @@ export interface PreviewShape {
   frame: Frame
 }
 
-export interface ImageFramingPluginOptions<K extends string = DefaultBreakpoint> {
-  /** Upload collections that get a crop and a focus area. */
-  collections: CollectionSlug[]
+/** Options that can be set for all framed collections and per collection. */
+export interface CollectionFramingOptions {
+  /** Shapes the media editor previews the framing in. Default: `DEFAULT_PREVIEW_SHAPES`. */
+  previewShapes?: PreviewShape[]
+  /**
+   * File access for the size rebuild and the cropped copies. Default: the
+   * collection's `staticDir` on local disk (`localDiskStorage`).
+   */
+  storage?: (collection: CollectionConfig, doc: MediaDoc) => FramingStorage
+  /**
+   * Which generated image sizes are rebuilt from the crop after a change:
+   * `true` all of them (default), `false` none (Payload's sizes stay made from
+   * the whole photo, e.g. when only `frameImage` is used), or a list of size names.
+   */
+  rebuildSizes?: boolean | string[]
+  /**
+   * The cropped-copy endpoint, at `<api>/<collection>/crop/:id/:token/:filename`
+   * by default. `false` leaves it out, e.g. when an image service crops from the
+   * signed rect; `path` moves it (then pass `routePrefix` to `frameImage`), and
+   * `cacheControl` replaces its `Cache-Control` header.
+   */
+  endpoint?: false | { path?: string; cacheControl?: string }
+  /** Field access for the added fields (crop, focus area, usage groups). Default: none. */
+  access?: FramingAccess
+}
+
+export interface ImageFramingPluginOptions<
+  K extends string = DefaultBreakpoint,
+> extends CollectionFramingOptions {
+  /**
+   * Upload collections that get a crop and a focus area: a list of slugs, or
+   * an object with per-collection options (`true` for the defaults), e.g.
+   * `{ media: true, avatars: { previewShapes: [square], rebuildSizes: false } }`.
+   * Per-collection options replace the plugin-wide ones.
+   */
+  collections: CollectionSlug[] | Partial<Record<CollectionSlug, true | CollectionFramingOptions>>
   /**
    * Signs the cropped-copy URLs. Defaults to the Payload config's `secret`;
    * pass the same value to `frameImage`. Changing it invalidates every cropped
    * URL rendered before: pages pick up new ones on their next render.
    */
   secret?: string
+  /** Payload component path of the media editor. Default: the package's `FramingEditor`. */
   editorPath?: string
-  /** Upload fields that get their own crop and focus area, by path; see `addUsages`. */
+  /**
+   * Upload fields that get their own crop and focus area, by path:
+   * `<collection or global>.<field path>` or `block:<block slug>.<field path>`.
+   */
   // NoInfer: only `framing` decides the breakpoint names, so a frame for an
   // undefined breakpoint is a type error rather than a new name.
   usages?: Record<string, UsageOptions<NoInfer<K>>>
@@ -59,11 +96,14 @@ export interface ImageFramingPluginOptions<K extends string = DefaultBreakpoint>
    * and `md` from 768 px.
    */
   framing?: FramingConfig<K>
+  /** Payload component path of the usage editor. Default: the package's `UsageFramingField`. */
   usageEditorPath?: string
-  /** Shapes the media editor previews the framing in. */
-  previewShapes?: PreviewShape[]
-  /** File access per collection; the default reads and writes the collection's `staticDir`. */
-  storage?: (collection: CollectionConfig, doc: MediaDoc) => FramingStorage
+  /**
+   * Turns the plugin off but keeps its fields, so the database schema stays
+   * the same (Payload plugin convention): no hooks, endpoint or editors.
+   * Default: `false`.
+   */
+  disabled?: boolean
 }
 
 const defaultStorage = (collection: CollectionConfig): FramingStorage => {
@@ -73,6 +113,13 @@ const defaultStorage = (collection: CollectionConfig): FramingStorage => {
   return localDiskStorage({ staticDir })
 }
 
+const withSizes = (imageSizes: ImageSize[], rebuild: boolean | string[]): ImageSize[] =>
+  rebuild === true
+    ? imageSizes
+    : rebuild === false
+      ? []
+      : imageSizes.filter((size) => rebuild.includes(size.name))
+
 /**
  * Non-destructive crop and focus areas for upload collections. Replaces
  * Payload's crop tool, which overwrites the original, with crop and focus rects
@@ -80,37 +127,76 @@ const defaultStorage = (collection: CollectionConfig): FramingStorage => {
  */
 export const imageFramingPlugin = <K extends string = DefaultBreakpoint>({
   collections,
+  disabled = false,
   editorPath = DEFAULT_EDITOR_PATH,
   framing = DEFAULT_FRAMING as unknown as FramingConfig<K>,
-  previewShapes = DEFAULT_PREVIEW_SHAPES,
   secret: secretOption,
-  storage = defaultStorage,
   usageEditorPath = DEFAULT_USAGE_EDITOR_PATH,
   usages = {},
+  ...defaults
 }: ImageFramingPluginOptions<K>): Plugin => {
+  const perCollection: Record<string, CollectionFramingOptions> = Array.isArray(collections)
+    ? Object.fromEntries(collections.map((slug) => [slug, {}]))
+    : Object.fromEntries(
+        Object.entries(collections).map(([slug, options]) => [
+          slug,
+          options === true ? {} : (options ?? {}),
+        ]),
+      )
+
   const withFraming = (collection: CollectionConfig, secret: string): CollectionConfig => {
     const slug = collection.slug as CollectionSlug
     if (!collection.upload) {
       throw new Error(`imageFraming: collection "${slug}" is not an upload collection`)
     }
+    const taken = dataNames(collection.fields).filter((name) =>
+      (MEDIA_FIELD_NAMES as readonly string[]).includes(name),
+    )
+    if (taken.length) {
+      throw new Error(
+        `imageFraming: collection "${slug}" already has a field ${taken.map((n) => `"${n}"`).join(', ')}; ` +
+          `the plugin adds ${MEDIA_FIELD_NAMES.join(', ')}`,
+      )
+    }
+    const {
+      access,
+      endpoint = {},
+      previewShapes = DEFAULT_PREVIEW_SHAPES,
+      rebuildSizes = true,
+      storage = defaultStorage,
+    } = { ...defaults, ...perCollection[slug] }
     const upload = typeof collection.upload === 'object' ? collection.upload : {}
     const files = (doc: MediaDoc) => storage(collection, doc)
 
-    return {
+    const framed: CollectionConfig = {
       ...collection,
-      // The original is never cropped or re-focused by Payload itself.
+      // The original is never cropped or re-focused by Payload itself. Kept when
+      // disabled: without image sizes, `focalPoint: false` drops focalX/focalY.
       upload: { ...upload, crop: false, focalPoint: false },
-      fields: [...collection.fields, ...mediaFramingFields(editorPath, previewShapes)],
+      fields: [
+        ...collection.fields,
+        ...mediaFramingFields({ access, editorPath: disabled ? null : editorPath, previewShapes }),
+      ],
+    }
+    if (disabled) return framed
+
+    return {
+      ...framed,
       endpoints: [
         ...(collection.endpoints || []),
-        cropEndpoint({ collection: slug, secret, storage: files }),
+        ...(endpoint
+          ? [cropEndpoint({ ...endpoint, collection: slug, secret, storage: files })]
+          : []),
       ],
       hooks: {
         ...collection.hooks,
         beforeValidate: [...(collection.hooks?.beforeValidate ?? []), validateFraming(slug)],
         afterChange: [
           ...(collection.hooks?.afterChange ?? []),
-          rebuildSizesAfterChange({ imageSizes: upload.imageSizes ?? [], storage: files }),
+          rebuildSizesAfterChange({
+            imageSizes: withSizes(upload.imageSizes ?? [], rebuildSizes),
+            storage: files,
+          }),
         ],
         afterDelete: [...(collection.hooks?.afterDelete ?? []), clearCacheAfterDelete(files)],
       },
@@ -118,9 +204,14 @@ export const imageFramingPlugin = <K extends string = DefaultBreakpoint>({
   }
 
   return (config: Config): Config => {
-    assertSharp(config)
+    const slugs = Object.keys(perCollection)
+    const missing = slugs.filter((slug) => !config.collections?.some((c) => c.slug === slug))
+    if (missing.length) {
+      throw new Error(`imageFraming: no collection ${missing.map((s) => `"${s}"`).join(', ')}`)
+    }
+    if (!disabled) assertSharp(config)
     const secret = secretOption ?? config.secret
-    if (!secret) {
+    if (!secret && !disabled) {
       throw new Error(
         'imageFraming: no secret; set `secret` in the plugin options or the Payload config',
       )
@@ -130,14 +221,16 @@ export const imageFramingPlugin = <K extends string = DefaultBreakpoint>({
       {
         ...config,
         collections: (config.collections ?? []).map((collection) =>
-          collections.includes(collection.slug as CollectionSlug)
-            ? withFraming(collection, secret)
-            : collection,
+          slugs.includes(collection.slug) ? withFraming(collection, secret ?? '') : collection,
         ),
       },
       usages,
-      usageEditorPath,
-      framing,
+      {
+        access: defaults.access,
+        componentPath: disabled ? null : usageEditorPath,
+        framedCollections: slugs,
+        framing,
+      },
     )
   }
 }

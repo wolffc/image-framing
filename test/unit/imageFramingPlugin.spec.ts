@@ -1,14 +1,30 @@
 // @vitest-environment node
-import type { Config, Field } from 'payload'
+import type {
+  CollectionAfterChangeHook,
+  CollectionConfig,
+  Config,
+  Endpoint,
+  Field,
+  PayloadRequest,
+} from 'payload'
 import { describe, expect, it } from 'vitest'
 
 import { DEFAULT_FRAMING, defineFraming } from '../../src/core/index.js'
-import { imageFramingPlugin } from '../../src/payload/index.js'
+import { cropToken } from '../../src/exports/server.js'
+import { fieldAccess } from '../../src/payload/admin/permissions.js'
+import {
+  DEFAULT_CACHE_CONTROL,
+  DEFAULT_PREVIEW_SHAPES,
+  type FramingStorage,
+  imageFramingPlugin,
+  type ImageFramingPluginOptions,
+} from '../../src/payload/index.js'
 
 /**
- * How the plugin attaches per-usage overrides (#316, part 2): an
- * `imageFraming` group right after each configured upload field, found by its
- * path through collections, unnamed tabs and rows, groups and (nested) blocks.
+ * How the plugin changes the Payload config: the media fields, hooks and
+ * endpoint, and per-usage overrides, an `imageFraming` group right after each
+ * configured upload field, found by its path through collections, unnamed tabs
+ * and rows, groups and (nested) blocks. Plus every plugin option.
  */
 
 const upload = (name: string): Field => ({ name, type: 'upload', relationTo: 'media' })
@@ -222,5 +238,384 @@ describe('imageFramingPlugin framing', () => {
       })
 
     expect(plugin).not.toThrow()
+  })
+})
+
+// --- Options ---------------------------------------------------------------
+
+type Options = ImageFramingPluginOptions<'base' | 'md'>
+
+const run = (options: Partial<Options>, base: Config = config()): Config =>
+  imageFramingPlugin({ collections: ['media'], secret: 's', ...options } as Options)(base) as Config
+
+const collection = (result: Config, slug = 'media'): CollectionConfig =>
+  result.collections!.find((c) => c.slug === slug)!
+
+const field = (fields: Field[], name: string) =>
+  fields.find((f) => 'name' in f && f.name === name) as Extract<Field, { type: 'group' }>
+
+const clientProps = (f: Field) =>
+  (f.admin as { components: { Field: { clientProps: Record<string, unknown> } } }).components.Field
+    .clientProps
+
+const withMediaSizes = (): Config => {
+  const base = config()
+  collection(base).upload = {
+    staticDir: '/tmp/media',
+    imageSizes: [
+      { name: 'thumbnail', width: 400 },
+      { name: 'square', width: 600, height: 600 },
+    ],
+  }
+  return base
+}
+
+/** Runs the media collection's afterChange hooks with a stub sharp and database. */
+const rebuilt = async (result: Config) => {
+  const sharp = () => {
+    const chain = {
+      rotate: () => chain,
+      extract: () => chain,
+      resize: () => chain,
+      toBuffer: async () => ({ data: Buffer.from('x'), info: { size: 1, width: 1, height: 1 } }),
+    }
+    return chain
+  }
+  const req = {
+    payload: { config: { sharp }, db: { updateOne: async () => ({ updatedAt: 'now' }) } },
+  } as unknown as PayloadRequest
+  const doc = {
+    id: 1,
+    filename: 'a.jpg',
+    mimeType: 'image/jpeg',
+    width: 3000,
+    height: 1000,
+    sizes: { thumbnail: { filename: 'a-400.jpg' }, square: { filename: 'a-600.jpg' } },
+  }
+  const media = collection(result)
+  for (const hook of media.hooks?.afterChange ?? []) {
+    await (hook as CollectionAfterChangeHook)({
+      collection: { slug: 'media' },
+      context: {},
+      doc,
+      operation: 'update',
+      previousDoc: undefined,
+      req,
+    } as unknown as Parameters<CollectionAfterChangeHook>[0])
+  }
+}
+
+describe('imageFramingPlugin options', () => {
+  it('takes collections as a list or as an object, with the same result for the defaults', () => {
+    const asList = collection(run({ collections: ['media'] }))
+    const asObject = collection(run({ collections: { media: true } }))
+
+    expect(names(asObject.fields)).toEqual(names(asList.fields))
+    expect(asObject.endpoints).toHaveLength((asList.endpoints as Endpoint[]).length)
+    expect(Object.keys(asObject.hooks!)).toEqual(Object.keys(asList.hooks!))
+  })
+
+  it('fails for a collection that does not exist', () => {
+    expect(() => run({ collections: ['photos'] })).toThrow(/no collection "photos"/)
+  })
+
+  it('previews per-collection shapes, falling back to the plugin-wide ones', () => {
+    const square = [{ key: 'sq', label: 'Square', frame: { aspect: 1 } }]
+    const wide = [{ key: 'w', label: 'Wide', frame: { aspect: 3 } }]
+
+    const editor = (result: Config) => clientProps(field(collection(result).fields, 'framing'))
+    expect(editor(run({})).previewShapes).toEqual(DEFAULT_PREVIEW_SHAPES)
+    expect(editor(run({ previewShapes: wide })).previewShapes).toEqual(wide)
+    expect(
+      editor(run({ previewShapes: wide, collections: { media: { previewShapes: square } } }))
+        .previewShapes,
+    ).toEqual(square)
+  })
+
+  it('uses the per-collection storage', async () => {
+    const reads: string[] = []
+    const storage = (): FramingStorage => ({
+      readOriginal: async (name) => (reads.push(name), Buffer.from('x')),
+      writeSize: async () => {},
+      readCached: async () => null,
+      writeCached: async () => {},
+      clearCached: async () => {},
+    })
+    await rebuilt(run({ collections: { media: { storage } } }, withMediaSizes()))
+
+    expect(reads).toEqual(['a.jpg'])
+  })
+
+  it('rebuilds all sizes by default, none with rebuildSizes: false, or only the listed ones', async () => {
+    const written = async (rebuildSizes?: boolean | string[]) => {
+      const reads: string[] = []
+      const storage = (): FramingStorage => ({
+        readOriginal: async () => Buffer.from('x'),
+        writeSize: async (name) => void reads.push(name),
+        readCached: async () => null,
+        writeCached: async () => {},
+        clearCached: async () => {},
+      })
+      await rebuilt(run({ collections: { media: { storage, rebuildSizes } } }, withMediaSizes()))
+      return reads
+    }
+
+    expect(await written(undefined)).toEqual(['a-400.jpg', 'a-600.jpg'])
+    expect(await written(true)).toEqual(['a-400.jpg', 'a-600.jpg'])
+    expect(await written(false)).toEqual([])
+    expect(await written(['square'])).toEqual(['a-600.jpg'])
+  })
+
+  describe('endpoint', () => {
+    const endpoints = (result: Config) => (collection(result).endpoints || []) as Endpoint[]
+
+    /** Calls the crop endpoint for a cached copy and returns the response. */
+    const call = async (endpoint: Endpoint) => {
+      const doc = {
+        id: 1,
+        filename: 'a.jpg',
+        mimeType: 'image/jpeg',
+        width: 100,
+        height: 100,
+        updatedAt: 't',
+      }
+      const token = cropToken({
+        id: 1,
+        rect: { x: 0, y: 0, width: 50, height: 50 },
+        secret: 's',
+        updatedAt: 't',
+      })
+      return endpoint.handler({
+        payload: { findByID: async () => doc },
+        routeParams: { id: '1', token, filename: 'a.jpg' },
+      } as unknown as PayloadRequest)
+    }
+
+    it('adds the crop endpoint with the default path and caching', async () => {
+      const [endpoint] = endpoints(
+        run({
+          storage: () =>
+            ({ readCached: async () => Buffer.from('c') }) as unknown as FramingStorage,
+        }),
+      )
+
+      expect(endpoint.path).toBe('/crop/:id/:token/:filename')
+      expect((await call(endpoint)).headers.get('Cache-Control')).toBe(DEFAULT_CACHE_CONTROL)
+    })
+
+    it('moves the endpoint and changes its Cache-Control', async () => {
+      const [endpoint] = endpoints(
+        run({
+          collections: {
+            media: { endpoint: { path: '/framed/', cacheControl: 'public, max-age=60' } },
+          },
+          storage: () =>
+            ({ readCached: async () => Buffer.from('c') }) as unknown as FramingStorage,
+        }),
+      )
+
+      expect(endpoint.path).toBe('/framed/:id/:token/:filename')
+      expect((await call(endpoint)).headers.get('Cache-Control')).toBe('public, max-age=60')
+    })
+
+    it('leaves the endpoint out with endpoint: false', () => {
+      expect(endpoints(run({ endpoint: false }))).toEqual([])
+    })
+  })
+
+  describe('field access', () => {
+    const access = { update: () => false }
+    const usageGroup = (result: Config) => field(heroFields(result), 'imageFraming')
+
+    it('passes access to the crop and focus area fields and to usage groups', () => {
+      const result = run({ access, usages: { 'pages.hero.media': {} } })
+
+      expect(field(collection(result).fields, 'crop').access).toBe(access)
+      expect(field(collection(result).fields, 'focusArea').access).toBe(access)
+      expect(usageGroup(result).access).toBe(access)
+    })
+
+    it('takes per-collection and per-usage access over the plugin-wide one', () => {
+      const own = { read: () => true }
+      const result = run({
+        access,
+        collections: { media: { access: own } },
+        usages: { 'pages.hero.media': { access: own } },
+      })
+
+      expect(field(collection(result).fields, 'crop').access).toBe(own)
+      expect(usageGroup(result).access).toBe(own)
+    })
+
+    it('adds no access by default', () => {
+      const result = run({ usages: { 'pages.hero.media': {} } })
+
+      expect(field(collection(result).fields, 'crop').access).toBeUndefined()
+      expect(usageGroup(result).access).toBeUndefined()
+    })
+
+    it('reads what the user may do with a field from the document permissions', () => {
+      const ok = { create: true, read: true, update: true }
+      const readOnly = { read: true }
+      const permissions = (fields: unknown, doc: Record<string, true> = { update: true }) =>
+        ({ ...doc, fields }) as never
+      const at = (
+        fields: unknown,
+        path: string,
+        options: Parameters<typeof fieldAccess>[2] = { isNew: false },
+        doc?: Record<string, true>,
+      ) => fieldAccess(permissions(fields, doc), path, options)
+
+      // Unknown permissions: allowed; the server enforces access anyway.
+      expect(fieldAccess(undefined, 'crop', { isNew: false })).toEqual({ edit: true, read: true })
+      // Top level.
+      expect(at({ crop: ok }, 'crop')).toEqual({ edit: true, read: true })
+      expect(at({ crop: readOnly }, 'crop')).toEqual({ edit: false, read: true })
+      expect(at({}, 'crop')).toEqual({ edit: false, read: false })
+      expect(at(true, 'crop')).toEqual({ edit: true, read: true })
+      // The document decides first: update for existing ones, create for new ones.
+      expect(at(true, 'crop', { isNew: false }, {})).toEqual({ edit: false, read: true })
+      expect(
+        at({ crop: { read: true, create: true } }, 'crop', { isNew: true }, { create: true }),
+      ).toEqual({ edit: true, read: true })
+      // Nested in a group: every level must allow it.
+      expect(
+        at({ hero: { ...ok, fields: { imageFraming: readOnly } } }, 'hero.imageFraming'),
+      ).toEqual({ edit: false, read: true })
+      expect(
+        at({ hero: { ...readOnly, fields: { imageFraming: ok } } }, 'hero.imageFraming'),
+      ).toEqual({ edit: false, read: true })
+      expect(at({ hero: { ...ok, fields: { imageFraming: true } } }, 'hero.imageFraming')).toEqual({
+        edit: true,
+        read: true,
+      })
+      // In a blocks row: by the row's block type.
+      const layout = { ...ok, blocks: { card: { fields: { imageFraming: readOnly } }, hero: true } }
+      const options = (blockType: string) => ({ blockTypeAt: () => blockType, isNew: false })
+      expect(at({ layout }, 'layout.0.imageFraming', options('card'))).toEqual({
+        edit: false,
+        read: true,
+      })
+      expect(at({ layout }, 'layout.3.imageFraming', options('hero'))).toEqual({
+        edit: true,
+        read: true,
+      })
+      // In an array row.
+      expect(
+        at({ items: { ...ok, fields: { imageFraming: readOnly } } }, 'items.2.imageFraming'),
+      ).toEqual({ edit: false, read: true })
+    })
+  })
+
+  describe('field names', () => {
+    it('fails when the media collection already has a crop, focusArea or framing field', () => {
+      const base = config()
+      collection(base).fields.push({ type: 'row', fields: [{ name: 'crop', type: 'text' }] })
+
+      expect(() => run({}, base)).toThrow(/collection "media" already has a field "crop"/)
+    })
+
+    it('renames a usage group with its name option', () => {
+      const result = run({ usages: { 'pages.hero.media': { name: 'heroFraming' } } })
+
+      expect(names(heroFields(result))).toEqual(['type', 'media', 'heroFraming'])
+    })
+
+    it('fails when a usage group would take a name used on the same level', () => {
+      const base = config()
+      const hero = heroFields(base)
+      hero.push({
+        type: 'collapsible',
+        label: 'More',
+        fields: [{ name: 'imageFraming', type: 'text' }],
+      })
+
+      expect(() => run({ usages: { 'pages.hero.media': {} } }, base)).toThrow(
+        /usage "pages\.hero\.media" adds a field "imageFraming"/,
+      )
+      expect(() =>
+        run({ usages: { 'pages.hero.media': { name: 'framingOverride' } } }, base),
+      ).not.toThrow()
+    })
+
+    it('does not count names of other levels as taken', () => {
+      const base = config()
+      heroFields(base).push({
+        name: 'nested',
+        type: 'group',
+        fields: [{ name: 'imageFraming', type: 'text' }],
+      })
+
+      expect(() => run({ usages: { 'pages.hero.media': {} } }, base)).not.toThrow()
+    })
+  })
+
+  it('hands the usage label and description to the usage editor', () => {
+    const result = run({
+      usages: {
+        'pages.hero.media': { label: 'Hero image', admin: { description: 'Shown on top.' } },
+      },
+    })
+    const editor = field(heroFields(result), 'imageFraming').fields.find(
+      (f) => 'name' in f && f.name === 'editor',
+    )!
+
+    expect(clientProps(editor)).toMatchObject({ label: 'Hero image', description: 'Shown on top.' })
+  })
+
+  it('fails for a usage whose upload field points to a collection without framing', () => {
+    const base = config()
+    base.collections!.push({ slug: 'docs', upload: { staticDir: '/tmp/docs' }, fields: [] })
+    ;(heroFields(base)[1] as { relationTo: string }).relationTo = 'docs'
+
+    expect(() => run({ usages: { 'pages.hero.media': {} } }, base)).toThrow(
+      /usage "pages\.hero\.media" uploads to "docs", which has no image framing/,
+    )
+  })
+
+  it('fails for a usage on an upload field with several collections or many uploads', () => {
+    const base = config()
+    ;(heroFields(base)[1] as { hasMany?: boolean }).hasMany = true
+
+    expect(() => run({ usages: { 'pages.hero.media': {} } }, base)).toThrow(
+      /must be a single upload field/,
+    )
+  })
+
+  describe('disabled', () => {
+    /** Data fields, recursively, as `name:type`: what the database schema is made of. */
+    const schema = (fields: Field[]): string[] =>
+      fields.flatMap((f): string[] => {
+        if (f.type === 'ui') return []
+        const own = 'name' in f && f.name ? [`${f.name}:${f.type}`] : []
+        if (f.type === 'tabs') return f.tabs.flatMap((tab) => schema(tab.fields))
+        if (f.type === 'blocks') return [...own, ...f.blocks.flatMap((b) => schema(b.fields))]
+        return 'fields' in f && Array.isArray(f.fields) ? [...own, ...schema(f.fields)] : own
+      })
+
+    const usages = { 'pages.hero.media': {}, 'block:cta.media': {} }
+
+    it('keeps the fields, so the database stays the same', () => {
+      const on = run({ usages })
+      const off = run({ disabled: true, usages })
+
+      expect(schema(collection(off).fields)).toEqual(schema(collection(on).fields))
+      expect(schema(pages(off).fields)).toEqual(schema(pages(on).fields))
+      expect(collection(off).upload).toEqual(collection(on).upload)
+    })
+
+    it('adds no hooks, endpoint or editors, and needs neither sharp nor a secret', () => {
+      const base = { ...config(), sharp: undefined, secret: '' }
+      const off = imageFramingPlugin({ collections: ['media'], disabled: true, usages })(
+        base,
+      ) as Config
+
+      expect(collection(off).hooks).toBeUndefined()
+      expect(collection(off).endpoints).toBeUndefined()
+      expect(collection(off).fields.some((f) => f.type === 'ui')).toBe(false)
+      const group = field(heroFields(off), 'imageFraming')
+      expect((group as { hooks?: unknown }).hooks).toBeUndefined()
+      expect(group.fields.some((f) => f.type === 'ui')).toBe(false)
+    })
   })
 })

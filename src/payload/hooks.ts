@@ -78,6 +78,7 @@ export const validateFraming =
 /**
  * Rebuilds the generated sizes from the crop area after a change to the crop,
  * the focus area or the file, and drops the cropped copies of the old version.
+ * `imageSizes` are the sizes to rebuild; with none it only drops the copies.
  */
 export const rebuildSizesAfterChange =
   ({
@@ -98,6 +99,7 @@ export const rebuildSizesAfterChange =
 
     const files = storage(doc)
     await files.clearCached(`${doc.id}-`)
+    if (!imageSizes.length) return doc
     const sizes = await rebuildSizes({
       doc,
       framing: resolveFraming(doc),

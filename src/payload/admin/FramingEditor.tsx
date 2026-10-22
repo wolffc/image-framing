@@ -1,11 +1,12 @@
 'use client'
 
-import { FieldLabel, useFormFields } from '@payloadcms/ui'
+import { FieldLabel, useDocumentInfo, useFormFields } from '@payloadcms/ui'
 import React from 'react'
 
 import { FULL_RECT, resolveFraming } from '../../core/index.js'
 
 import { FramingCanvas } from './FramingCanvas.js'
+import { fieldAccess } from './permissions.js'
 import { type PreviewFrame, PreviewStrip } from './PreviewStrip.js'
 import { useRect } from './useRect.js'
 
@@ -15,9 +16,11 @@ import { useRect } from './useRect.js'
  * every frame keeps in view where it can. Both are data: the original file is
  * never changed, so a crop can be widened again later.
  */
-export const FramingEditor: React.FC<{ previewShapes?: PreviewFrame[] }> = ({
+export const FramingEditor: React.FC<{ previewShapes?: PreviewFrame[]; readOnly?: boolean }> = ({
   previewShapes = [],
+  readOnly: readOnlyProp = false,
 }) => {
+  const { docPermissions, id } = useDocumentInfo()
   const url = useFormFields(([fields]) => fields.url?.value as string | undefined)
   const width = useFormFields(([fields]) => fields.width?.value as number | undefined)
   const height = useFormFields(([fields]) => fields.height?.value as number | undefined)
@@ -27,7 +30,10 @@ export const FramingEditor: React.FC<{ previewShapes?: PreviewFrame[] }> = ({
   const cropField = useRect('crop')
   const focusField = useRect('focusArea')
 
-  if (mimeType && !mimeType.startsWith('image/')) return null
+  // The editor is a UI field without access of its own: it follows the crop field's.
+  const access = fieldAccess(docPermissions, 'crop', { isNew: !id })
+  if (!access.read || (mimeType && !mimeType.startsWith('image/'))) return null
+  const readOnly = readOnlyProp || !access.edit
 
   const { crop, focus } = resolveFraming({
     crop: cropField.stored,
@@ -61,19 +67,22 @@ export const FramingEditor: React.FC<{ previewShapes?: PreviewFrame[] }> = ({
               cropField.set(next.crop)
               focusField.set(next.focus)
             }}
+            readOnly={readOnly}
             url={url}
           />
-          <button
-            className="btn btn--style-secondary btn--size-small"
-            onClick={() => {
-              cropField.set(FULL_RECT)
-              focusField.set(focus)
-            }}
-            style={{ marginTop: 12 }}
-            type="button"
-          >
-            Show the whole photo
-          </button>
+          {!readOnly && (
+            <button
+              className="btn btn--style-secondary btn--size-small"
+              onClick={() => {
+                cropField.set(FULL_RECT)
+                focusField.set(focus)
+              }}
+              style={{ marginTop: 12 }}
+              type="button"
+            >
+              Show the whole photo
+            </button>
+          )}
           <PreviewStrip
             crop={crop}
             focus={focus}
