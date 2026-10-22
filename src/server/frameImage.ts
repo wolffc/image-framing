@@ -42,7 +42,7 @@ export interface FrameImageOptions {
   frames?: Frames
   /** The usage's own crop and focus area: the `imageFraming` group next to its upload field. */
   override?: FramingOverride
-  /** Signs the cropped-copy URLs; must be the plugin's `secret`. */
+  /** Signs the cropped-copy URLs: the plugin's `secret`, by default the Payload config's. */
   secret: string
   /**
    * Where the plugin serves cropped copies of this media, e.g.

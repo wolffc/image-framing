@@ -47,8 +47,8 @@ export const FramingEditor: React.FC<{ previewShapes?: PreviewFrame[] }> = ({
         The <strong>crop area</strong> (solid frame) is the part of the photo the site shows, in
         every size and shape. The <strong>focus area</strong> (dashed frame) is the subject: the
         site keeps it in view and away from text. The original file stays as it is, so you can widen
-        the crop again later. Each place that uses the photo can set its own crop, narrower or
-        wider.
+        the crop again later. Where a page sets its own crop for the photo, narrower or wider, that
+        one applies there instead.
       </p>
 
       {url ? (
