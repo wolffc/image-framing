@@ -6,8 +6,9 @@
  */
 export { cropToken, readCropToken, type TokenContext } from '../server/cropToken.js'
 export {
+  cropRoutePrefix,
   cropUrl,
-  DEFAULT_ROUTE_PREFIX,
+  type CropUrlOptions,
   DEFAULT_VARIABLE,
   type FrameableMedia,
   type FramedImage,

@@ -5,6 +5,7 @@ import type { Frame } from '../core/index.js'
 import { clearCacheAfterDelete, rebuildSizesAfterChange, validateFraming } from './hooks.js'
 import { cropEndpoint } from './cropEndpoint.js'
 import { mediaFramingFields } from './fields.js'
+import { assertSharp } from './sharp.js'
 import type { MediaDoc } from './sizes.js'
 import { type FramingStorage, localDiskStorage } from './storage.js'
 import { addUsages, type UsageOptions } from './usages.js'
@@ -36,8 +37,12 @@ export interface PreviewShape {
 export interface ImageFramingPluginOptions {
   /** Upload collections that get a crop and a focus area. */
   collections: CollectionSlug[]
-  /** Signs the cropped-copy URLs. Use the same value for `frameImage`. */
-  secret: string
+  /**
+   * Signs the cropped-copy URLs. Defaults to the Payload config's `secret`;
+   * pass the same value to `frameImage`. Changing it invalidates every cropped
+   * URL rendered before: pages pick up new ones on their next render.
+   */
+  secret?: string
   editorPath?: string
   /** Upload fields that get their own crop and focus area, by path; see `addUsages`. */
   usages?: Record<string, UsageOptions>
@@ -56,7 +61,7 @@ const defaultStorage = (collection: CollectionConfig): FramingStorage => {
 }
 
 /**
- * Non-destructive crop and focus areas for upload collections (#316). Replaces
+ * Non-destructive crop and focus areas for upload collections. Replaces
  * Payload's crop tool, which overwrites the original, with crop and focus rects
  * stored as data; generated sizes and cropped copies are made from them.
  */
@@ -64,12 +69,12 @@ export const imageFramingPlugin = ({
   collections,
   editorPath = DEFAULT_EDITOR_PATH,
   previewShapes = DEFAULT_PREVIEW_SHAPES,
-  secret,
+  secret: secretOption,
   storage = defaultStorage,
   usageEditorPath = DEFAULT_USAGE_EDITOR_PATH,
   usages = {},
 }: ImageFramingPluginOptions): Plugin => {
-  const withFraming = (collection: CollectionConfig): CollectionConfig => {
+  const withFraming = (collection: CollectionConfig, secret: string): CollectionConfig => {
     const slug = collection.slug as CollectionSlug
     if (!collection.upload) {
       throw new Error(`imageFraming: collection "${slug}" is not an upload collection`)
@@ -98,17 +103,26 @@ export const imageFramingPlugin = ({
     }
   }
 
-  return (config: Config): Config =>
-    addUsages(
+  return (config: Config): Config => {
+    assertSharp(config)
+    const secret = secretOption ?? config.secret
+    if (!secret) {
+      throw new Error(
+        'imageFraming: no secret; set `secret` in the plugin options or the Payload config',
+      )
+    }
+
+    return addUsages(
       {
         ...config,
         collections: (config.collections ?? []).map((collection) =>
           collections.includes(collection.slug as CollectionSlug)
-            ? withFraming(collection)
+            ? withFraming(collection, secret)
             : collection,
         ),
       },
       usages,
       usageEditorPath,
     )
+  }
 }

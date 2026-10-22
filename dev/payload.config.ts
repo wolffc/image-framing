@@ -85,7 +85,6 @@ export default buildConfig({
   plugins: [
     imageFramingPlugin({
       collections: ['media'],
-      secret,
       usages: {
         'pages.hero.image': { frames: heroFrames },
         'block:card.image': { frames: cardFrames },

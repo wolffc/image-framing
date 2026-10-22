@@ -33,12 +33,12 @@ export interface UsageFramingFieldProps {
   relationTo: string
   /** Name of the sibling upload field. */
   uploadField: string
-  /** Set by Payload: this field's path, e.g. `hero.imageFraming.editor`. */
+  /** Set by Payload: this field's path, e.g. `header.imageFraming.editor`. */
   path?: string
 }
 
 /**
- * The values of the fields directly under `prefix`, e.g. the hero's `type`.
+ * The values of the fields directly under `prefix`, e.g. a `layout` select next to the image.
  * Selected as a string, so the field only re-renders when one of them changes.
  */
 const useSiblingValues = (prefix: string): Record<string, unknown> => {
@@ -54,7 +54,7 @@ const useSiblingValues = (prefix: string): Record<string, unknown> => {
 }
 
 /**
- * One usage's own crop and focus area (#316): a summary, and a drawer with the
+ * One usage's own crop and focus area: a summary, and a drawer with the
  * editor (the whole photo, with the media's crop outlined as the default) and
  * a preview in the usage's frames.
  * Empty means "as on the media".
@@ -127,25 +127,25 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
           onClick={() => openModal(drawerSlug)}
           size="small"
         >
-          Adjust the framing for this block
+          Adjust the framing here
         </Button>
         <span>
           <strong>{custom ? 'Custom framing' : 'Default framing'}</strong>{' '}
           <span style={{ color: 'var(--theme-elevation-500)' }}>
             {custom
-              ? 'This block uses its own crop and focus area.'
-              : 'The crop and focus area set on the image in Media.'}
+              ? 'Uses its own crop and focus area here.'
+              : 'Uses the crop and focus area set on the image.'}
           </span>
         </span>
       </div>
 
-      <Drawer slug={drawerSlug} title="Framing for this block">
+      <Drawer slug={drawerSlug} title="Framing for this usage">
         {/* Room below the buttons, so they don't sit on the window's edge when the drawer scrolls. */}
         <div data-image-framing-drawer style={{ paddingBottom: 48 }}>
           <p style={{ color: 'var(--theme-elevation-500)', marginTop: 0 }}>
-            Set the crop and focus area for this block only. The crop can be narrower or wider than
-            the one set on the image in Media (dotted outline), up to the whole photo. The preview
-            shows this block&apos;s frames, with the parts its text covers hatched.
+            Set the crop and focus area for this usage only. The crop can be narrower or wider than
+            the one set on the image (dotted outline), up to the whole photo. The preview shows the
+            frames this usage shows the photo in, with the parts that text covers hatched.
           </p>
           {media?.url && framing && mediaFraming ? (
             <>

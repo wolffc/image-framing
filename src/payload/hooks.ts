@@ -17,6 +17,7 @@ import {
   type StoredRect,
 } from '../core/index.js'
 
+import { getSharp } from './sharp.js'
 import { type MediaDoc, rebuildSizes } from './sizes.js'
 import type { FramingStorage } from './storage.js'
 
@@ -101,19 +102,22 @@ export const rebuildSizesAfterChange =
       doc,
       framing: resolveFraming(doc),
       imageSizes,
+      sharp: getSharp(req.payload),
       storage: files,
     })
     if (!sizes) return doc
 
     // Same version, only rebuilt files: keep `updatedAt`, which the cropped-copy
-    // URLs are signed with. The adapter would set a new one otherwise.
-    await req.payload.db.updateOne({
+    // URLs are signed with. The adapter would set a new one otherwise, and some
+    // Payload versions (3.39) do so anyway: return what was stored, so URLs
+    // signed from the returned document match the database.
+    const stored = (await req.payload.db.updateOne({
       collection: collection.slug,
       data: { sizes, updatedAt: doc.updatedAt },
       id: doc.id,
       req,
-    })
-    return { ...doc, sizes }
+    })) as { updatedAt?: string } | null
+    return { ...doc, sizes, updatedAt: stored?.updatedAt ?? doc.updatedAt }
   }
 
 export const clearCacheAfterDelete =

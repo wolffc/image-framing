@@ -86,7 +86,7 @@ export interface Framing {
   focus: Rect
 }
 
-/** A usage's own crop and focus area (e.g. one block's); missing values mean "as on the media". */
+/** A usage's own crop and focus area (e.g. one page's header image); missing values mean "as on the media". */
 export type FramingOverride = { crop?: StoredRect; focusArea?: StoredRect } | null | undefined
 
 const pick = (rect: Rect): Rect => ({

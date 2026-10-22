@@ -40,12 +40,24 @@ export interface FrameImageOptions {
   media: FrameableMedia
   /** Without frames the style is empty, e.g. for a photo shown in its own shape. */
   frames?: Frames
-  /** The usage's own crop and focus area, e.g. a block's `imageFraming`. */
+  /** The usage's own crop and focus area: the `imageFraming` group next to its upload field. */
   override?: FramingOverride
-  /** Signs the cropped-copy URLs; must be the plugin's `secret`. */
+  /** Signs the cropped-copy URLs: the plugin's `secret`, by default the Payload config's. */
   secret: string
-  /** Where the plugin serves cropped copies. */
+  /**
+   * Where the plugin serves cropped copies of this media, e.g.
+   * `/api/images/crop`. By default it is derived from the media's `url`: the
+   * crop route sits next to Payload's file route (`<api>/<collection>/file/…`),
+   * so a custom collection slug, `routes.api` or `serverURL` need no option.
+   * Needed when `url` points elsewhere, e.g. to a storage adapter's bucket.
+   */
   routePrefix?: string
+  /**
+   * Origin (and optional path) to serve cropped copies from, e.g. a CDN in
+   * front of Payload: `https://cdn.example.com`. Replaces the origin of the
+   * derived URL; without it the URL keeps the media `url`'s origin, or none.
+   */
+  baseUrl?: string
   /** Prefix of the CSS variables; the md one gets `-md`. */
   variable?: string
 }
@@ -62,17 +74,47 @@ export interface FramedImage {
   focus?: Rect
 }
 
-export const DEFAULT_ROUTE_PREFIX = '/api/media/crop'
 export const DEFAULT_VARIABLE = '--frame-pos'
 
-/** The URL of the cropped copy of `media` for `rect`, without a host. */
+/** Payload's file route: `<origin><api>/<collection>/file/<filename>`, maybe with a query. */
+const FILE_ROUTE = /^(.*)\/file\/[^/?#]+(?:[?#].*)?$/
+const ORIGIN = /^[a-z][a-z\d+.-]*:\/\/[^/]+/i
+
+/**
+ * The route the plugin serves cropped copies of `media` from, derived from its
+ * `url`: `/cms-api/images/file/beach.jpg` gives `/cms-api/images/crop`, an
+ * absolute URL keeps its origin. Null when `url` isn't Payload's file route.
+ */
+export const cropRoutePrefix = (media: Pick<FrameableMedia, 'url'>): string | null => {
+  const match = media.url ? FILE_ROUTE.exec(media.url) : null
+  return match ? `${match[1]}/crop` : null
+}
+
+export interface CropUrlOptions {
+  /** See `FrameImageOptions.routePrefix`. */
+  routePrefix?: string
+  /** See `FrameImageOptions.baseUrl`. */
+  baseUrl?: string
+}
+
+/** The URL of the cropped copy of `media` for `rect`. */
 export const cropUrl = (
   media: FrameableMedia,
   rect: Parameters<typeof cropToken>[0]['rect'],
   secret: string,
-  routePrefix = DEFAULT_ROUTE_PREFIX,
-): string =>
-  `${routePrefix}/${media.id}/${cropToken({ id: media.id, rect, secret, updatedAt: media.updatedAt })}/${encodeURIComponent(media.filename ?? 'image')}`
+  { baseUrl, routePrefix }: CropUrlOptions = {},
+): string => {
+  let prefix = routePrefix ?? cropRoutePrefix(media)
+  if (!prefix) {
+    throw new Error(
+      `frameImage: can't tell where the cropped copies of media ${media.id} are served from its url ` +
+        `(${JSON.stringify(media.url ?? null)}). Pass \`routePrefix\`, e.g. '/api/<collection>/crop'.`,
+    )
+  }
+  if (baseUrl) prefix = baseUrl.replace(/\/+$/, '') + prefix.replace(ORIGIN, '')
+  const token = cropToken({ id: media.id, rect, secret, updatedAt: media.updatedAt })
+  return `${prefix}/${media.id}/${token}/${encodeURIComponent(media.filename ?? 'image')}`
+}
 
 /**
  * A media document framed for one layout: the URL of a copy cut to the crop
@@ -84,7 +126,8 @@ export const frameImage = ({
   frames,
   media,
   override,
-  routePrefix = DEFAULT_ROUTE_PREFIX,
+  baseUrl,
+  routePrefix,
   secret,
   variable = DEFAULT_VARIABLE,
 }: FrameImageOptions): FramedImage => {
@@ -107,7 +150,7 @@ export const frameImage = ({
 
   const { crop, focus } = resolveFraming(media, override)
   if (!isFullRect(crop) && url) {
-    resource.url = cropUrl(media, crop, secret, routePrefix)
+    resource.url = cropUrl(media, crop, secret, { baseUrl, routePrefix })
     resource.width = Math.round((crop.width / 100) * width)
     resource.height = Math.round((crop.height / 100) * height)
   }

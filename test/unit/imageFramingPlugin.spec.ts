@@ -64,6 +64,10 @@ const config = (): Config =>
         ],
       },
     ],
+    // Never called: these tests only transform the config.
+    sharp: () => {
+      throw new Error('not in unit tests')
+    },
   }) as unknown as Config
 
 const heroRules = [{ when: { type: 'fullBleed' }, frames: { base: { aspect: 16 / 9 } } }]
@@ -131,5 +135,24 @@ describe('imageFramingPlugin usages', () => {
   it('fails loudly when a configured usage does not exist, e.g. after a rename', () => {
     expect(() => apply({ 'block:cta.photo': {} })).toThrow(/block:cta\.photo/)
     expect(() => apply({ 'pages.hero.image': {} })).toThrow(/pages\.hero\.image/)
+  })
+})
+
+describe('imageFramingPlugin requirements', () => {
+  it('fails at startup without sharp in the Payload config', () => {
+    const withoutSharp = { ...config(), sharp: undefined }
+
+    expect(() => imageFramingPlugin({ collections: ['media'], secret: 's' })(withoutSharp)).toThrow(
+      /set `sharp` in the Payload config/,
+    )
+  })
+
+  it("uses the Payload config's secret by default and fails without any", () => {
+    expect(() =>
+      imageFramingPlugin({ collections: ['media'] })({ ...config(), secret: 'config-secret' }),
+    ).not.toThrow()
+    expect(() =>
+      imageFramingPlugin({ collections: ['media'] })({ ...config(), secret: '' }),
+    ).toThrow(/no secret/)
   })
 })
