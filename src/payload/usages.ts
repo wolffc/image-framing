@@ -10,7 +10,7 @@ import {
   normalizeRect,
 } from '../core/index.js'
 
-import { rectField } from './fields.js'
+import { dataNames, type FramingAccess, rectField } from './fields.js'
 
 /** What the site tells the plugin about one usage of an image. */
 export interface UsageOptions<K extends string = DefaultBreakpoint> {
@@ -19,7 +19,24 @@ export interface UsageOptions<K extends string = DefaultBreakpoint> {
    * preview: the first rule whose `when` matches the sibling fields.
    */
   frames?: FrameRule<K>[]
+  /**
+   * Name of the group that stores the usage's crop and focus area, next to the
+   * upload field. Default: `imageFraming`. Pass the group's value to
+   * `frameImage({ override })`.
+   */
+  name?: string
+  /** Names the usage in the admin, e.g. 'Header image': the drawer's title. */
+  label?: string
+  admin?: {
+    /** Shown under the usage's framing summary and in its drawer. */
+    description?: string
+  }
+  /** Field access for the usage's group. Default: the plugin's `access`. */
+  access?: FramingAccess
 }
+
+/** The default name of a usage's group. */
+export const DEFAULT_USAGE_FIELD_NAME = 'imageFraming'
 
 const EMPTY = { x: null, y: null, width: null, height: null }
 
@@ -37,19 +54,20 @@ const clampOverride: FieldHook = ({ value }) => {
   return { ...override, crop: crop ?? EMPTY, focusArea: focusArea ?? EMPTY }
 }
 
-/** The `imageFraming` group added after a framed upload field. */
+/** The group added after a framed upload field, `imageFraming` by default. */
 const overrideGroup = (
   field: UploadField,
   usage: UsageOptions<string>,
-  componentPath: string,
-  framing: FramingConfig<string>,
+  { access, componentPath, framing }: UsageContext,
 ): GroupField => {
   const relationTo = field.relationTo as string
   const uploadCondition = field.admin?.condition
+  const groupAccess = usage.access ?? access
   return {
-    name: 'imageFraming',
+    name: usage.name ?? DEFAULT_USAGE_FIELD_NAME,
     type: 'group',
     label: false,
+    ...(groupAccess ? { access: groupAccess } : {}),
     admin: {
       // Shown with its image: an override without one would be invisible.
       condition: (data, siblingData, context) =>
@@ -57,29 +75,43 @@ const overrideGroup = (
         (uploadCondition?.(data, siblingData, context) ?? true),
       hideGutter: true,
     },
-    hooks: { beforeChange: [clampOverride] },
+    ...(componentPath ? { hooks: { beforeChange: [clampOverride] } } : {}),
     fields: [
-      {
-        name: 'editor',
-        type: 'ui',
-        admin: {
-          components: {
-            Field: {
-              clientProps: {
-                breakpoints: framing.breakpoints,
-                frames: usage.frames ?? [],
-                relationTo,
-                uploadField: field.name,
+      ...(componentPath
+        ? [
+            {
+              name: 'editor',
+              type: 'ui',
+              admin: {
+                components: {
+                  Field: {
+                    clientProps: {
+                      breakpoints: framing.breakpoints,
+                      description: usage.admin?.description,
+                      frames: usage.frames ?? [],
+                      label: usage.label,
+                      relationTo,
+                      uploadField: field.name,
+                    },
+                    path: componentPath,
+                  },
+                },
               },
-              path: componentPath,
-            },
-          },
-        },
-      },
+            } satisfies Field,
+          ]
+        : []),
       rectField('crop', 'Crop area'),
       rectField('focusArea', 'Focus area'),
     ],
   }
+}
+
+interface UsageContext {
+  /** Default field access for the groups. */
+  access?: FramingAccess
+  /** The usage editor; null leaves out the editor and the hooks (plugin disabled). */
+  componentPath: string | null
+  framing: FramingConfig<string>
 }
 
 /**
@@ -92,9 +124,15 @@ const overrideGroup = (
 export const addUsages = (
   config: Config,
   usages: Record<string, UsageOptions<string>>,
-  componentPath: string,
-  framing: FramingConfig<string>,
+  {
+    framedCollections,
+    ...context
+  }: UsageContext & {
+    /** Slugs of the collections with framing: a usage must upload to one of them. */
+    framedCollections: string[]
+  },
 ): Config => {
+  const { framing } = context
   const names = framing.breakpoints.map((breakpoint) => breakpoint.name)
   for (const [path, usage] of Object.entries(usages)) {
     for (const rule of usage.frames ?? []) {
@@ -111,20 +149,40 @@ export const addUsages = (
 
   const walkBlock = (block: Block): Block => ({
     ...block,
-    fields: walk(block.fields, `block:${block.slug}.`),
+    fields: walk(block.fields, `block:${block.slug}.`, dataNames(block.fields)),
   })
 
-  const walk = (fields: Field[], prefix: string): Field[] =>
+  /** `level`: the names stored next to `fields`, which a usage's group must not take. */
+  const walk = (fields: Field[], prefix: string, level: string[]): Field[] =>
     fields.flatMap((field): Field[] => {
       const named =
         'name' in field && typeof field.name === 'string' && field.name ? field.name : null
       const inner = named ? `${prefix}${named}.` : prefix
 
-      if (field.type === 'upload' && named && typeof field.relationTo === 'string') {
-        const usage = usages[`${prefix}${named}`]
+      if (field.type === 'upload' && named) {
+        const path = `${prefix}${named}`
+        const usage = usages[path]
         if (!usage) return [field]
-        found.add(`${prefix}${named}`)
-        return [field, overrideGroup(field, usage, componentPath, framing)]
+        found.add(path)
+        if (typeof field.relationTo !== 'string' || field.hasMany) {
+          throw new Error(
+            `imageFraming: usage "${path}" must be a single upload field with one relationTo`,
+          )
+        }
+        if (!framedCollections.includes(field.relationTo)) {
+          throw new Error(
+            `imageFraming: usage "${path}" uploads to "${field.relationTo}", which has no image ` +
+              `framing; add it to the plugin's collections`,
+          )
+        }
+        const groupName = usage.name ?? DEFAULT_USAGE_FIELD_NAME
+        if (level.includes(groupName)) {
+          throw new Error(
+            `imageFraming: usage "${path}" adds a field "${groupName}" next to the upload field, ` +
+              `but one exists there already; pick another with the usage's \`name\` option`,
+          )
+        }
+        return [field, overrideGroup(field, usage, context)]
       }
       if (field.type === 'tabs') {
         return [
@@ -132,10 +190,10 @@ export const addUsages = (
             ...field,
             tabs: field.tabs.map((tab) => ({
               ...tab,
-              fields: walk(
-                tab.fields,
-                'name' in tab && tab.name ? `${prefix}${tab.name}.` : prefix,
-              ),
+              fields:
+                'name' in tab && tab.name
+                  ? walk(tab.fields, `${prefix}${tab.name}.`, dataNames(tab.fields))
+                  : walk(tab.fields, prefix, level),
             })),
           },
         ]
@@ -144,7 +202,8 @@ export const addUsages = (
         return [{ ...field, blocks: field.blocks.map(walkBlock) }]
       }
       if ('fields' in field && Array.isArray(field.fields)) {
-        return [{ ...field, fields: walk(field.fields, inner) } as Field]
+        const innerLevel = named ? dataNames(field.fields) : level
+        return [{ ...field, fields: walk(field.fields, inner, innerLevel) } as Field]
       }
       return [field]
     })
@@ -154,11 +213,11 @@ export const addUsages = (
     blocks: config.blocks?.map(walkBlock),
     collections: config.collections?.map((collection) => ({
       ...collection,
-      fields: walk(collection.fields, `${collection.slug}.`),
+      fields: walk(collection.fields, `${collection.slug}.`, dataNames(collection.fields)),
     })),
     globals: config.globals?.map((global) => ({
       ...global,
-      fields: walk(global.fields, `${global.slug}.`),
+      fields: walk(global.fields, `${global.slug}.`, dataNames(global.fields)),
     })),
   }
 

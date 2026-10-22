@@ -2,8 +2,10 @@
  * The Payload side of image framing: the plugin, its options and the storage
  * interface. The admin components are in `../exports/client.ts`.
  */
-export { CROP_ENDPOINT_PATH } from './cropEndpoint.js'
+export { DEFAULT_CACHE_CONTROL, DEFAULT_ENDPOINT_PATH } from './cropEndpoint.js'
+export { type FramingAccess } from './fields.js'
 export {
+  type CollectionFramingOptions,
   DEFAULT_EDITOR_PATH,
   DEFAULT_PREVIEW_SHAPES,
   DEFAULT_USAGE_EDITOR_PATH,
@@ -13,4 +15,4 @@ export {
 } from './plugin.js'
 export type { MediaDoc } from './sizes.js'
 export { type FramingStorage, localDiskStorage } from './storage.js'
-export type { UsageOptions } from './usages.js'
+export { DEFAULT_USAGE_FIELD_NAME, type UsageOptions } from './usages.js'

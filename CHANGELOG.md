@@ -28,3 +28,11 @@ package uses [Semantic Versioning](https://semver.org/).
   helpers `framePositionCss` and `framedImageClasses`. Without a config the
   output is the same as before (`base` and `md` from 768 px).
 - `DEFAULT_VARIABLE` moved from `./server` to `./core`.
+- Plugin options: `collections` as an object with per-collection options;
+  `previewShapes`, `storage`, `rebuildSizes`, `endpoint` (`path`,
+  `cacheControl`, or `false`) and `access` plugin-wide or per collection;
+  per-usage `name`, `label`, `admin.description` and `access`; `disabled`.
+  The editors follow field access. Startup errors for unknown collections,
+  taken field names, usages on collections without framing and usages on
+  polymorphic or `hasMany` upload fields. `CROP_ENDPOINT_PATH` is now
+  `DEFAULT_ENDPOINT_PATH` (`'/crop'`).

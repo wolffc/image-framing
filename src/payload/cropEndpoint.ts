@@ -6,7 +6,11 @@ import { getSharp } from './sharp.js'
 import { type MediaDoc, toPixels } from './sizes.js'
 import type { FramingStorage } from './storage.js'
 
-export const CROP_ENDPOINT_PATH = '/crop/:id/:token/:filename'
+/** Where the crop endpoint sits under a collection's API route; `frameImage` assumes it. */
+export const DEFAULT_ENDPOINT_PATH = '/crop'
+
+/** Cropped copies never change under their URL, which names the media version. */
+export const DEFAULT_CACHE_CONTROL = 'public, max-age=31536000, immutable'
 
 const notFound = () => new Response('Not found', { status: 404 })
 
@@ -19,15 +23,19 @@ const notFound = () => new Response('Not found', { status: 404 })
  * media, so they can be cached forever downstream too.
  */
 export const cropEndpoint = ({
+  cacheControl = DEFAULT_CACHE_CONTROL,
   collection,
+  path = DEFAULT_ENDPOINT_PATH,
   secret,
   storage,
 }: {
+  cacheControl?: string
   collection: CollectionSlug
+  path?: string
   secret: string
   storage: (doc: MediaDoc) => FramingStorage
 }): Endpoint => ({
-  path: CROP_ENDPOINT_PATH,
+  path: `/${path.replace(/^\/+|\/+$/g, '')}/:id/:token/:filename`,
   method: 'get',
   handler: async (req) => {
     const { id, token } = (req.routeParams ?? {}) as Record<string, string | undefined>
@@ -44,7 +52,7 @@ export const cropEndpoint = ({
     if (!rect) return notFound()
 
     const headers = {
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Cache-Control': cacheControl,
       'Content-Type': doc.mimeType,
     }
     const files = storage(doc)

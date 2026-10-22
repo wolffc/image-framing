@@ -63,6 +63,8 @@ export interface FramingCanvasProps {
   crop: Rect
   focus: Rect
   onChange: (framing: { crop: Rect; focus: Rect }) => void
+  /** Shows the frames and values without letting them be changed. */
+  readOnly?: boolean
 }
 
 /**
@@ -75,6 +77,7 @@ export const FramingCanvas: React.FC<FramingCanvasProps> = ({
   focus,
   limit,
   onChange,
+  readOnly = false,
   reference,
   url,
 }) => {
@@ -100,6 +103,9 @@ export const FramingCanvas: React.FC<FramingCanvasProps> = ({
       target,
     })
   }
+
+  const press = (target: Target, handle: Handle) =>
+    readOnly ? undefined : onPointerDown(target, handle)
 
   const onPointerMove = (event: React.PointerEvent) => {
     if (!active || !box.current) return
@@ -154,40 +160,43 @@ export const FramingCanvas: React.FC<FramingCanvasProps> = ({
           />
         )}
         <div
+          data-framing-readonly={readOnly || undefined}
           data-framing-rect="crop"
-          onPointerDown={onPointerDown('crop', 'move')}
+          onPointerDown={press('crop', 'move')}
           style={{
             ...percentBox(crop),
             boxShadow: '0 0 0 9999px rgb(0 0 0 / 0.45)',
-            cursor: 'move',
+            cursor: readOnly ? 'default' : 'move',
             outline: '2px solid var(--theme-elevation-0)',
           }}
         >
-          {CORNERS.map((handle) => (
-            <span
-              key={handle}
-              onPointerDown={onPointerDown('crop', handle)}
-              style={handleStyle(handle, 'var(--theme-elevation-1000)')}
-            />
-          ))}
+          {!readOnly &&
+            CORNERS.map((handle) => (
+              <span
+                key={handle}
+                onPointerDown={press('crop', handle)}
+                style={handleStyle(handle, 'var(--theme-elevation-1000)')}
+              />
+            ))}
         </div>
         <div
           data-framing-rect="focusArea"
-          onPointerDown={onPointerDown('focus', 'move')}
+          onPointerDown={press('focus', 'move')}
           style={{
             ...percentBox(focus),
             background: 'rgb(255 255 255 / 0.08)',
             border: '2px dashed var(--theme-success-500)',
-            cursor: 'move',
+            cursor: readOnly ? 'default' : 'move',
           }}
         >
-          {CORNERS.map((handle) => (
-            <span
-              key={handle}
-              onPointerDown={onPointerDown('focus', handle)}
-              style={handleStyle(handle, 'var(--theme-success-500)')}
-            />
-          ))}
+          {!readOnly &&
+            CORNERS.map((handle) => (
+              <span
+                key={handle}
+                onPointerDown={press('focus', handle)}
+                style={handleStyle(handle, 'var(--theme-success-500)')}
+              />
+            ))}
         </div>
       </div>
 
@@ -206,6 +215,7 @@ export const FramingCanvas: React.FC<FramingCanvasProps> = ({
                     data-framing-input={`${target === 'crop' ? 'crop' : 'focusArea'}.${key}`}
                     max={100}
                     min={0}
+                    disabled={readOnly}
                     onChange={onNumber(target, key)}
                     step={0.1}
                     style={{ width: 72 }}

@@ -53,10 +53,14 @@ describe('public API', () => {
     expect(exportedNames()).toMatchInlineSnapshot(`
       {
         ".": [
-          "CROP_ENDPOINT_PATH",
+          "type CollectionFramingOptions",
+          "DEFAULT_CACHE_CONTROL",
           "DEFAULT_EDITOR_PATH",
+          "DEFAULT_ENDPOINT_PATH",
           "DEFAULT_PREVIEW_SHAPES",
           "DEFAULT_USAGE_EDITOR_PATH",
+          "DEFAULT_USAGE_FIELD_NAME",
+          "type FramingAccess",
           "type FramingStorage",
           "imageFramingPlugin",
           "type ImageFramingPluginOptions",
