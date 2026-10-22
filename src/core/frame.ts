@@ -40,7 +40,9 @@ export const matchFrames = (
   data
     ? rules?.find((rule) =>
         Object.entries(rule.when).every(([field, expected]) =>
-          typeof expected === 'string' ? data[field] === expected : expected.includes(data[field] as string),
+          typeof expected === 'string'
+            ? data[field] === expected
+            : expected.includes(data[field] as string),
         ),
       )?.frames
     : undefined
@@ -70,10 +72,15 @@ export interface VisibleRectInput {
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
 /** Covered share (0-1) at the start and end of one axis of the frame. */
-const coverOn = (cover: CoverArea[] | undefined, start: CoverArea['edge'], end: CoverArea['edge']) => {
+const coverOn = (
+  cover: CoverArea[] | undefined,
+  start: CoverArea['edge'],
+  end: CoverArea['edge'],
+) => {
   const sum = (edge: CoverArea['edge']) =>
-    (cover ?? []).filter((area) => area.edge === edge).reduce((total, area) => total + area.size, 0) /
-    100
+    (cover ?? [])
+      .filter((area) => area.edge === edge)
+      .reduce((total, area) => total + area.size, 0) / 100
   const before = clamp(sum(start), 0, 1)
   const after = clamp(sum(end), 0, 1 - before)
   return { before, after }

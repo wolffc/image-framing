@@ -77,7 +77,10 @@ describe('frameImage', () => {
 
   it('sets one object-position per breakpoint', () => {
     const { style } = frameImage({
-      frames: { base: { aspect: 4 / 5 }, md: { aspect: 16 / 9, cover: [{ edge: 'left', size: 45 }] } },
+      frames: {
+        base: { aspect: 4 / 5 },
+        md: { aspect: 16 / 9, cover: [{ edge: 'left', size: 45 }] },
+      },
       media,
       secret,
     })
@@ -179,7 +182,9 @@ describe('crop tokens', () => {
     const token = cropToken({ id: 7, rect, secret, updatedAt })
 
     expect(readCropToken(token, { id: 8, secret, updatedAt })).toBeNull()
-    expect(readCropToken(token, { id: 7, secret, updatedAt: '2026-10-02T00:00:00.000Z' })).toBeNull()
+    expect(
+      readCropToken(token, { id: 7, secret, updatedAt: '2026-10-02T00:00:00.000Z' }),
+    ).toBeNull()
     expect(readCropToken(token, { id: 7, secret: 'other', updatedAt })).toBeNull()
   })
 

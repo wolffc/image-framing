@@ -65,7 +65,8 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
   const cropField = useRect(`${groupPath}.crop`)
   const focusField = useRect(`${groupPath}.focusArea`)
   const mediaId = useFormFields(([fields]) => {
-    const value = fields[`${siblingPrefix}${uploadField}`]?.value as { id?: unknown } | number | string | null
+    const value = fields[`${siblingPrefix}${uploadField}`]?.value as
+      { id?: unknown } | number | string | null
     return value && typeof value === 'object' ? value.id : value
   })
   const siblings = useSiblingValues(siblingPrefix)
@@ -79,7 +80,9 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
   useEffect(() => {
     if (!mediaId) return
     let cancelled = false
-    fetch(`${config.serverURL}${config.routes.api}/${relationTo}/${mediaId}?depth=0`, { credentials: 'include' })
+    fetch(`${config.serverURL}${config.routes.api}/${relationTo}/${mediaId}?depth=0`, {
+      credentials: 'include',
+    })
       .then((response) => (response.ok ? response.json() : null))
       .catch(() => null)
       .then((doc: MediaDoc | null) => {
@@ -113,7 +116,12 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
       style={{ marginTop: 'calc(var(--spacing-field) / -2)' }}
     >
       <div style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: '8px 12px' }}>
-        <Button buttonStyle="pill" margin={false} onClick={() => openModal(drawerSlug)} size="small">
+        <Button
+          buttonStyle="pill"
+          margin={false}
+          onClick={() => openModal(drawerSlug)}
+          size="small"
+        >
           Adjust the framing for this block
         </Button>
         <span>
@@ -130,9 +138,9 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
         {/* Room below the buttons, so they don't sit on the window's edge when the drawer scrolls. */}
         <div data-image-framing-drawer style={{ paddingBottom: 48 }}>
           <p style={{ color: 'var(--theme-elevation-500)', marginTop: 0 }}>
-            Set the crop and focus area for this block only. The crop can be narrower or wider
-            than the one set on the image in Media (dotted outline), up to the whole photo. The
-            preview shows this block&apos;s frames, with the parts its text covers hatched.
+            Set the crop and focus area for this block only. The crop can be narrower or wider than
+            the one set on the image in Media (dotted outline), up to the whole photo. The preview
+            shows this block&apos;s frames, with the parts its text covers hatched.
           </p>
           {media?.url && framing && mediaFraming ? (
             <>

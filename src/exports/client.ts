@@ -8,4 +8,7 @@
 export { FramingCanvas, type FramingCanvasProps } from '../payload/admin/FramingCanvas.js'
 export { FramingEditor } from '../payload/admin/FramingEditor.js'
 export { type PreviewFrame, PreviewStrip } from '../payload/admin/PreviewStrip.js'
-export { UsageFramingField, type UsageFramingFieldProps } from '../payload/admin/UsageFramingField.js'
+export {
+  UsageFramingField,
+  type UsageFramingFieldProps,
+} from '../payload/admin/UsageFramingField.js'

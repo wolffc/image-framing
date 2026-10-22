@@ -1,6 +1,12 @@
 import type { Block, Config, Field, FieldHook, GroupField, UploadField } from 'payload'
 
-import { type FrameRule, type FramingOverride, FULL_RECT, isCompleteRect, normalizeRect } from '../core/index.js'
+import {
+  type FrameRule,
+  type FramingOverride,
+  FULL_RECT,
+  isCompleteRect,
+  normalizeRect,
+} from '../core/index.js'
 
 import { rectField } from './fields.js'
 
@@ -27,7 +33,11 @@ const clampOverride: FieldHook = ({ value }) => {
 }
 
 /** The `imageFraming` group added after a framed upload field. */
-const overrideGroup = (field: UploadField, usage: UsageOptions, componentPath: string): GroupField => {
+const overrideGroup = (
+  field: UploadField,
+  usage: UsageOptions,
+  componentPath: string,
+): GroupField => {
   const relationTo = field.relationTo as string
   const uploadCondition = field.admin?.condition
   return {
@@ -37,7 +47,8 @@ const overrideGroup = (field: UploadField, usage: UsageOptions, componentPath: s
     admin: {
       // Shown with its image: an override without one would be invisible.
       condition: (data, siblingData, context) =>
-        Boolean(siblingData?.[field.name]) && (uploadCondition?.(data, siblingData, context) ?? true),
+        Boolean(siblingData?.[field.name]) &&
+        (uploadCondition?.(data, siblingData, context) ?? true),
       hideGutter: true,
     },
     hooks: { beforeChange: [clampOverride] },
@@ -74,11 +85,15 @@ export const addUsages = (
 ): Config => {
   const found = new Set<string>()
 
-  const walkBlock = (block: Block): Block => ({ ...block, fields: walk(block.fields, `block:${block.slug}.`) })
+  const walkBlock = (block: Block): Block => ({
+    ...block,
+    fields: walk(block.fields, `block:${block.slug}.`),
+  })
 
   const walk = (fields: Field[], prefix: string): Field[] =>
     fields.flatMap((field): Field[] => {
-      const named = 'name' in field && typeof field.name === 'string' && field.name ? field.name : null
+      const named =
+        'name' in field && typeof field.name === 'string' && field.name ? field.name : null
       const inner = named ? `${prefix}${named}.` : prefix
 
       if (field.type === 'upload' && named && typeof field.relationTo === 'string') {
@@ -93,7 +108,10 @@ export const addUsages = (
             ...field,
             tabs: field.tabs.map((tab) => ({
               ...tab,
-              fields: walk(tab.fields, 'name' in tab && tab.name ? `${prefix}${tab.name}.` : prefix),
+              fields: walk(
+                tab.fields,
+                'name' in tab && tab.name ? `${prefix}${tab.name}.` : prefix,
+              ),
             })),
           },
         ]
@@ -114,12 +132,17 @@ export const addUsages = (
       ...collection,
       fields: walk(collection.fields, `${collection.slug}.`),
     })),
-    globals: config.globals?.map((global) => ({ ...global, fields: walk(global.fields, `${global.slug}.`) })),
+    globals: config.globals?.map((global) => ({
+      ...global,
+      fields: walk(global.fields, `${global.slug}.`),
+    })),
   }
 
   const missing = Object.keys(usages).filter((path) => !found.has(path))
   if (missing.length) {
-    throw new Error(`imageFraming: no upload field found for usage ${missing.map((p) => `"${p}"`).join(', ')}`)
+    throw new Error(
+      `imageFraming: no upload field found for usage ${missing.map((p) => `"${p}"`).join(', ')}`,
+    )
   }
   return result
 }

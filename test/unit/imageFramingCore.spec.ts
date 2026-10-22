@@ -185,7 +185,10 @@ describe('visibleRect', () => {
 
 describe('objectPosition', () => {
   it('is 0% at the crop start, 100% at its end and 50% when nothing slides', () => {
-    expect(objectPosition(FULL_RECT, { x: 0, y: 0, width: 50, height: 100 })).toEqual({ x: 0, y: 50 })
+    expect(objectPosition(FULL_RECT, { x: 0, y: 0, width: 50, height: 100 })).toEqual({
+      x: 0,
+      y: 50,
+    })
     expect(objectPosition(FULL_RECT, { x: 50, y: 0, width: 50, height: 100 })).toEqual({
       x: 100,
       y: 50,

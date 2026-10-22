@@ -94,7 +94,12 @@ export const FramingCanvas: React.FC<FramingCanvasProps> = ({
     event.preventDefault()
     event.stopPropagation()
     ;(event.target as Element).setPointerCapture?.(event.pointerId)
-    setActive({ handle, rect: target === 'crop' ? crop : focus, start: { x: event.clientX, y: event.clientY }, target })
+    setActive({
+      handle,
+      rect: target === 'crop' ? crop : focus,
+      start: { x: event.clientX, y: event.clientY },
+      target,
+    })
   }
 
   const onPointerMove = (event: React.PointerEvent) => {
@@ -119,7 +124,13 @@ export const FramingCanvas: React.FC<FramingCanvasProps> = ({
         onPointerMove={onPointerMove}
         onPointerUp={() => setActive(null)}
         ref={box}
-        style={{ position: 'relative', maxWidth: 720, overflow: 'hidden', touchAction: 'none', userSelect: 'none' }}
+        style={{
+          position: 'relative',
+          maxWidth: 720,
+          overflow: 'hidden',
+          touchAction: 'none',
+          userSelect: 'none',
+        }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- the admin shows the original, unoptimised */}
         <img alt="" draggable={false} src={url} style={{ display: 'block', width: '100%' }} />
