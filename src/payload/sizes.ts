@@ -9,6 +9,7 @@ type SizeData = {
   filename?: string | null
   filesize?: number | null
   height?: number | null
+  mimeType?: string | null
   width?: number | null
 }
 export type MediaDoc = TypeWithID &
@@ -47,7 +48,7 @@ export const rebuildSizes = async ({
   framing: Framing
   imageSizes: ImageSize[]
   sharp: Sharp
-  storage: FramingStorage
+  storage: FramingStorage & Required<Pick<FramingStorage, 'writeSize'>>
 }): Promise<Record<string, SizeData> | null> => {
   if (!doc.filename || !doc.width || !doc.height || !doc.sizes) return null
 
@@ -83,7 +84,7 @@ export const rebuildSizes = async ({
       .extract(region)
       .resize(resize)
       .toBuffer({ resolveWithObject: true })
-    await storage.writeSize(current.filename, data)
+    await storage.writeSize(current.filename, data, current.mimeType ?? doc.mimeType ?? undefined)
     sizes[size.name] = { ...current, filesize: info.size, height: info.height, width: info.width }
   }
 

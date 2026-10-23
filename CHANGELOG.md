@@ -39,3 +39,8 @@ package uses [Semantic Versioning](https://semver.org/).
 - Admin texts through Payload's i18n (`imageFraming` namespace), in English
   and German; `translations` option to override texts or add languages.
   Breakpoint, preview shape and usage labels take one string per language.
+- Cloud storage: `s3FramingStorage` (`./s3`) rebuilds sizes and caches
+  cropped copies in the bucket of `@payloadcms/storage-s3`; with any other
+  storage plugin the plugin reads originals through its handlers. The size
+  rebuild runs after the storage plugins' uploads, whatever the plugin order.
+  `FramingStorage.writeSize` is optional; storage factories also get `req`.

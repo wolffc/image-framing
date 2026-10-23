@@ -1,4 +1,12 @@
-import type { CollectionConfig, CollectionSlug, Config, ImageSize, Plugin } from 'payload'
+import type {
+  CollectionAfterChangeHook,
+  CollectionConfig,
+  CollectionSlug,
+  Config,
+  ImageSize,
+  PayloadRequest,
+  Plugin,
+} from 'payload'
 
 import {
   DEFAULT_FRAMING,
@@ -15,7 +23,7 @@ import { dataNames, type FramingAccess, MEDIA_FIELD_NAMES, mediaFramingFields } 
 import { withTranslations } from './i18n.js'
 import { assertSharp } from './sharp.js'
 import type { MediaDoc } from './sizes.js'
-import { type FramingStorage, localDiskStorage } from './storage.js'
+import { defaultStorage, type FramingStorageFactory } from './storage.js'
 import { addUsages, type UsageOptions } from './usages.js'
 
 /**
@@ -53,9 +61,12 @@ export interface CollectionFramingOptions {
   previewShapes?: PreviewShape[]
   /**
    * File access for the size rebuild and the cropped copies. Default: the
-   * collection's `staticDir` on local disk (`localDiskStorage`).
+   * collection's `staticDir` on local disk (`localDiskStorage`), or, with a
+   * storage plugin (`disableLocalStorage`), reading through its handlers
+   * without rebuilding sizes (`handlerStorage`). For S3, R2 or MinIO use
+   * `s3FramingStorage` from `@wolffc/payload-image-framing/s3`.
    */
-  storage?: (collection: CollectionConfig, doc: MediaDoc) => FramingStorage
+  storage?: FramingStorageFactory
   /**
    * Which generated image sizes are rebuilt from the crop after a change:
    * `true` all of them (default), `false` none (Payload's sizes stay made from
@@ -121,13 +132,6 @@ export interface ImageFramingPluginOptions<
   disabled?: boolean
 }
 
-const defaultStorage = (collection: CollectionConfig): FramingStorage => {
-  const staticDir =
-    collection.upload && typeof collection.upload === 'object' && collection.upload.staticDir
-  if (!staticDir) throw new Error(`imageFraming: collection "${collection.slug}" has no staticDir`)
-  return localDiskStorage({ staticDir })
-}
-
 const withSizes = (imageSizes: ImageSize[], rebuild: boolean | string[]): ImageSize[] =>
   rebuild === true
     ? imageSizes
@@ -160,6 +164,9 @@ export const imageFramingPlugin = <K extends string = DefaultBreakpoint>({
         ]),
       )
 
+  /** The size rebuild hook per collection, to move after the storage plugins' hooks. */
+  const rebuildHooks = new Map<string, CollectionAfterChangeHook>()
+
   const withFraming = (collection: CollectionConfig, secret: string): CollectionConfig => {
     const slug = collection.slug as CollectionSlug
     if (!collection.upload) {
@@ -182,7 +189,14 @@ export const imageFramingPlugin = <K extends string = DefaultBreakpoint>({
       storage = defaultStorage,
     } = { ...defaults, ...perCollection[slug] }
     const upload = typeof collection.upload === 'object' ? collection.upload : {}
-    const files = (doc: MediaDoc) => storage(collection, doc)
+    // The collection as Payload runs it, with what storage plugins added after us.
+    const files = (doc: MediaDoc, req: PayloadRequest) =>
+      storage(req.payload.collections?.[slug]?.config ?? collection, doc, req)
+    const rebuild = rebuildSizesAfterChange({
+      imageSizes: withSizes(upload.imageSizes ?? [], rebuildSizes),
+      storage: files,
+    })
+    rebuildHooks.set(slug, rebuild)
 
     const framed: CollectionConfig = {
       ...collection,
@@ -207,13 +221,7 @@ export const imageFramingPlugin = <K extends string = DefaultBreakpoint>({
       hooks: {
         ...collection.hooks,
         beforeValidate: [...(collection.hooks?.beforeValidate ?? []), validateFraming(slug)],
-        afterChange: [
-          ...(collection.hooks?.afterChange ?? []),
-          rebuildSizesAfterChange({
-            imageSizes: withSizes(upload.imageSizes ?? [], rebuildSizes),
-            storage: files,
-          }),
-        ],
+        afterChange: [...(collection.hooks?.afterChange ?? []), rebuild],
         afterDelete: [...(collection.hooks?.afterDelete ?? []), clearCacheAfterDelete(files)],
       },
     }
@@ -237,6 +245,20 @@ export const imageFramingPlugin = <K extends string = DefaultBreakpoint>({
       {
         ...config,
         i18n: withTranslations(config, translations),
+        onInit: async (payload) => {
+          // Storage plugins upload the original in their own afterChange hook,
+          // which they add after ours when they come later in `plugins`. The
+          // sizes must be rebuilt from the uploaded original, so run last.
+          for (const [slug, hook] of rebuildHooks) {
+            const hooks = payload.collections[slug as CollectionSlug]?.config.hooks?.afterChange
+            const index = hooks?.indexOf(hook) ?? -1
+            if (hooks && index >= 0 && index < hooks.length - 1) {
+              hooks.splice(index, 1)
+              hooks.push(hook)
+            }
+          }
+          await config.onInit?.(payload)
+        },
         collections: (config.collections ?? []).map((collection) =>
           slugs.includes(collection.slug) ? withFraming(collection, secret ?? '') : collection,
         ),

@@ -48,7 +48,7 @@ require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2))
 echo 'node-linker=hoisted' > .npmrc
 pnpm add --silent "$tarball" "payload@$PAYLOAD_VERSION" "@payloadcms/ui@$PAYLOAD_VERSION" \
   "@payloadcms/next@$PAYLOAD_VERSION" "@payloadcms/db-sqlite@$PAYLOAD_VERSION" "next@$NEXT_VERSION" \
-  react@19 react-dom@19 sharp graphql@16 typescript@5 @types/react@19 @types/react-dom@19 @types/node@24 esbuild \
+  react@19 react-dom@19 sharp graphql@16 @aws-sdk/client-s3 typescript@5 @types/react@19 @types/react-dom@19 @types/node@24 esbuild \
   >/dev/null
 
 # Every entry point exports these names, at runtime and in its types.
@@ -58,7 +58,8 @@ cat > expected.json <<'JSON'
   "@wolffc/payload-image-framing/core": ["resolveFraming", "visibleRect", "objectPosition", "matchFrames"],
   "@wolffc/payload-image-framing/server": ["cropToken", "readCropToken", "frameImage", "cropUrl"],
   "@wolffc/payload-image-framing/client": ["FramingEditor", "UsageFramingField", "FramingCanvas", "PreviewStrip"],
-  "@wolffc/payload-image-framing/next": ["frameImage"]
+  "@wolffc/payload-image-framing/next": ["frameImage"],
+  "@wolffc/payload-image-framing/s3": ["s3FramingStorage"]
 }
 JSON
 

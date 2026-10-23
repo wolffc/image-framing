@@ -9,7 +9,8 @@
     "image-crop",
     "focal-point",
     "focus-area",
-    "nextjs"
+    "nextjs",
+    "s3"
   ],
   "homepage": "https://github.com/wolffc/image-framing#readme",
   "bugs": {
@@ -48,6 +49,11 @@
       "types": "./src/next/index.ts",
       "import": "./src/next/index.ts",
       "default": "./src/next/index.ts"
+    },
+    "./s3": {
+      "types": "./src/s3/index.ts",
+      "import": "./src/s3/index.ts",
+      "default": "./src/s3/index.ts"
     }
   },
   "main": "./src/index.ts",
@@ -79,6 +85,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p dev/tsconfig.json"
   },
   "peerDependencies": {
+    "@aws-sdk/client-s3": "^3.614.0",
     "@payloadcms/ui": "^3.39.0",
     "next": "^15.2.3 || ^16.0.0",
     "payload": "^3.39.0",
@@ -86,13 +93,18 @@
     "react-dom": "^19.0.0"
   },
   "peerDependenciesMeta": {
+    "@aws-sdk/client-s3": {
+      "optional": true
+    },
     "next": {
       "optional": true
     }
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1156.0",
     "@payloadcms/db-sqlite": "3.91.0",
     "@payloadcms/next": "3.91.0",
+    "@payloadcms/storage-s3": "3.91.0",
     "@payloadcms/translations": "3.91.0",
     "@payloadcms/ui": "3.91.0",
     "@swc/cli": "0.8.1",
@@ -144,6 +156,11 @@
         "types": "./dist/next/index.d.ts",
         "import": "./dist/next/index.js",
         "default": "./dist/next/index.js"
+      },
+      "./s3": {
+        "types": "./dist/s3/index.d.ts",
+        "import": "./dist/s3/index.js",
+        "default": "./dist/s3/index.js"
       }
     },
     "main": "./dist/index.js",

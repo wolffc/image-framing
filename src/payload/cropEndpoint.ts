@@ -1,4 +1,4 @@
-import type { CollectionSlug, Endpoint } from 'payload'
+import type { CollectionSlug, Endpoint, PayloadRequest } from 'payload'
 
 import { readCropToken } from '../server/cropToken.js'
 
@@ -33,7 +33,7 @@ export const cropEndpoint = ({
   collection: CollectionSlug
   path?: string
   secret: string
-  storage: (doc: MediaDoc) => FramingStorage
+  storage: (doc: MediaDoc, req: PayloadRequest) => FramingStorage
 }): Endpoint => ({
   path: `/${path.replace(/^\/+|\/+$/g, '')}/:id/:token/:filename`,
   method: 'get',
@@ -55,7 +55,7 @@ export const cropEndpoint = ({
       'Cache-Control': cacheControl,
       'Content-Type': doc.mimeType,
     }
-    const files = storage(doc)
+    const files = storage(doc, req)
     const extension = doc.filename.includes('.')
       ? doc.filename.slice(doc.filename.lastIndexOf('.'))
       : ''

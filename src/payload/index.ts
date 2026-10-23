@@ -14,5 +14,11 @@ export {
   type PreviewShape,
 } from './plugin.js'
 export type { MediaDoc } from './sizes.js'
-export { type FramingStorage, localDiskStorage } from './storage.js'
+export {
+  diskCache,
+  type FramingStorage,
+  type FramingStorageFactory,
+  handlerStorage,
+  localDiskStorage,
+} from './storage.js'
 export { DEFAULT_USAGE_FIELD_NAME, type UsageOptions } from './usages.js'
