@@ -59,6 +59,13 @@ const layers: Record<string, Layer> = {
     packages: (spec) => spec === 'react' || spec === '@payloadcms/ui',
     typePackages: (spec) => spec === 'payload',
   },
+  // The S3 storage: the AWS SDK only here, so other entries don't need it.
+  s3: {
+    files: (f) => f.startsWith('s3/'),
+    local: ['s3/', 'payload/storage'],
+    packages: (spec) => spec === '@aws-sdk/client-s3' || spec === 'node:path',
+    typePackages: (spec) => spec === 'payload',
+  },
   next: {
     files: (f) => f.startsWith('next/'),
     local: ['core/', 'server/', 'next/'],

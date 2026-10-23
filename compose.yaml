@@ -23,6 +23,13 @@ services:
       - next_cache:/app/dev/.next
       - pnpm_store:/pnpm/store
 
+  # An S3-compatible server for the storage tests: ./dev.sh test-s3
+  s3:
+    image: adobe/s3mock:5.2.3
+    profiles: [s3]
+    environment:
+      COM_ADOBE_TESTING_S3MOCK_STORE_RETAIN_FILES_ON_EXIT: 'false'
+
 volumes:
   node_modules:
   next_cache:

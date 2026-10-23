@@ -60,8 +60,11 @@ describe('public API', () => {
           "DEFAULT_PREVIEW_SHAPES",
           "DEFAULT_USAGE_EDITOR_PATH",
           "DEFAULT_USAGE_FIELD_NAME",
+          "diskCache",
           "type FramingAccess",
           "type FramingStorage",
+          "type FramingStorageFactory",
+          "handlerStorage",
           "imageFramingPlugin",
           "type ImageFramingPluginOptions",
           "type ImageFramingTranslationKey",
@@ -130,6 +133,11 @@ describe('public API', () => {
           "type FramedResource",
           "frameImage",
           "type FrameImageOptions",
+        ],
+        "./s3": [
+          "objectKey",
+          "s3FramingStorage",
+          "type S3FramingStorageOptions",
         ],
         "./server": [
           "cropRoutePrefix",

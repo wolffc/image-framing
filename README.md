@@ -186,6 +186,18 @@ images: {
 }
 ```
 
+### Storage
+
+By default the plugin reads originals from, and writes rebuilt sizes and cropped copies (in `.crops/`) to, the collection's `staticDir`.
+
+With a storage plugin (`@payloadcms/storage-*`, `disableLocalStorage`):
+
+- **S3, R2, MinIO**: `storage: s3FramingStorage({ bucket, config })` from `@wolffc/payload-image-framing/s3` reads and writes the bucket that `@payloadcms/storage-s3` uses: sizes are rebuilt in the bucket, cropped copies are cached under `image-framing-cache/<collection>/` and removed when the document changes or is deleted. See [examples/cloud-storage](examples/cloud-storage).
+- **Any other adapter**, without a `storage` option: the plugin reads originals through the collection's upload handlers (the storage plugin's; not registered with `disablePayloadAccessControl`), so the crop endpoint works, and caches cropped copies on local disk (the system's temp directory). It can't write to the bucket, so the image sizes stay made from the whole photo; it warns unless `rebuildSizes: false`.
+- **Your own backend**: implement `FramingStorage` (`readOriginal`, `writeSize`, `readCached`, `writeCached`, `clearCached`) and pass a factory `(collection, doc, req) => FramingStorage`.
+
+The plugin order doesn't matter: storage plugins upload the original in their `afterChange` hook, and the plugin moves its size rebuild after them when Payload starts. Without a cache that survives deploys (e.g. on serverless hosts), put a CDN in front of the crop route: its responses are immutable, so a CDN can keep them forever.
+
 ### The secret
 
 The plugin signs cropped-copy URLs with the Payload config's `secret` unless you pass `secret` to the plugin. `frameImage` needs the same value, so call it on the server only. Changing the secret invalidates every cropped URL rendered before: dynamic pages get new ones on their next render, statically generated pages keep the old, now broken, URLs until they are rebuilt or revalidated.

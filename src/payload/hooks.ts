@@ -3,6 +3,7 @@ import {
   type CollectionAfterDeleteHook,
   type CollectionBeforeValidateHook,
   type ImageSize,
+  type PayloadRequest,
   ValidationError,
 } from 'payload'
 
@@ -87,7 +88,7 @@ export const rebuildSizesAfterChange =
     storage,
   }: {
     imageSizes: ImageSize[]
-    storage: (doc: MediaDoc) => FramingStorage
+    storage: (doc: MediaDoc, req: PayloadRequest) => FramingStorage
   }): CollectionAfterChangeHook =>
   async ({ collection, doc, previousDoc, req }) => {
     const changed =
@@ -98,15 +99,24 @@ export const rebuildSizesAfterChange =
       JSON.stringify(doc.sizes) !== JSON.stringify(previousDoc.sizes)
     if (!changed || !doc.mimeType?.startsWith('image/')) return doc
 
-    const files = storage(doc)
+    const files = storage(doc, req)
     await files.clearCached(`${doc.id}-`)
     if (!imageSizes.length) return doc
+    const { writeSize } = files
+    if (!writeSize) {
+      req.payload.logger.warn(
+        `imageFraming: the storage of "${collection.slug}" can't write files, so its image sizes ` +
+          'stay made from the whole photo. Use a storage with writeSize (e.g. s3FramingStorage) ' +
+          'or rebuildSizes: false.',
+      )
+      return doc
+    }
     const sizes = await rebuildSizes({
       doc,
       framing: resolveFraming(doc),
       imageSizes,
       sharp: getSharp(req.payload),
-      storage: files,
+      storage: { ...files, writeSize },
     })
     if (!sizes) return doc
 
@@ -124,7 +134,7 @@ export const rebuildSizesAfterChange =
   }
 
 export const clearCacheAfterDelete =
-  (storage: (doc: MediaDoc) => FramingStorage): CollectionAfterDeleteHook =>
-  async ({ doc }) => {
-    await storage(doc).clearCached(`${doc.id}-`)
+  (storage: (doc: MediaDoc, req: PayloadRequest) => FramingStorage): CollectionAfterDeleteHook =>
+  async ({ doc, req }) => {
+    await storage(doc, req).clearCached(`${doc.id}-`)
   }

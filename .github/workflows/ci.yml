@@ -50,11 +50,34 @@ jobs:
       - name: Install Payload ${{ env.LOWEST_PAYLOAD }}
         run: >-
           pnpm add -D payload@$LOWEST_PAYLOAD @payloadcms/ui@$LOWEST_PAYLOAD
-          @payloadcms/next@$LOWEST_PAYLOAD @payloadcms/db-sqlite@$LOWEST_PAYLOAD next@$LOWEST_NEXT
+          @payloadcms/next@$LOWEST_PAYLOAD @payloadcms/db-sqlite@$LOWEST_PAYLOAD
+          @payloadcms/storage-s3@$LOWEST_PAYLOAD next@$LOWEST_NEXT
       # The package and its tests; the dev app's generated files follow the latest Payload.
       - run: pnpm exec tsc --noEmit -p tsconfig.json
       - run: pnpm test
       - run: pnpm build
+
+  storage:
+    name: Cloud storage (S3)
+    runs-on: ubuntu-latest
+    services:
+      s3:
+        image: adobe/s3mock:5.2.3
+        ports:
+          - 9090:9090
+    env:
+      S3_ENDPOINT: http://localhost:9090
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Wait for the S3 server
+        run: timeout 90 bash -c 'until curl -s -o /dev/null $S3_ENDPOINT; do sleep 1; done'
+      - run: pnpm exec vitest run test/int/s3.int.spec.ts
 
   pack:
     name: Pack and install (${{ matrix.name }})
