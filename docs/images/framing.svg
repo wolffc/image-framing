@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 290" width="960" height="290" font-family="system-ui, -apple-system, Segoe UI, sans-serif">
+<title>How a frame shows the crop and keeps the focus area in view</title>
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3d405b"/><stop offset="0.58" stop-color="#e07a5f"/></linearGradient>
+<pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="8" fill="rgb(0 0 0 / 0.45)"/><rect x="4" width="4" height="8" fill="rgb(255 255 255 / 0.3)"/></pattern>
+<clipPath id="clip20"><rect x="20" y="46" width="280" height="157.5" rx="4"/></clipPath><clipPath id="clip340"><rect x="340" y="46" width="280" height="157.5" rx="4"/></clipPath><clipPath id="clip660"><rect x="660" y="46" width="280" height="157.5" rx="4"/></clipPath>
+</defs>
+<rect width="960" height="290" rx="10" fill="#ffffff"/>
+<text x="20" y="30" font-size="14" font-weight="600" fill="#1d1d1f">1 · Photo, crop area, focus area</text>
+<text x="340" y="30" font-size="14" font-weight="600" fill="#1d1d1f">2 · Phone frame, 4:5</text>
+<text x="660" y="30" font-size="14" font-weight="600" fill="#1d1d1f">3 · Desktop 21:9, text over the left 40 %</text>
+<g clip-path="url(#clip20)">
+<rect x="20" y="46" width="280" height="157.5" fill="url(#sky)"/>
+<rect x="20" y="137.3" width="280" height="66.1" fill="#2a4a57"/>
+<circle cx="126.4" cy="137.3" r="15" fill="#ffd27a"/>
+<path d="M235.6 105.8 L235.6 143.7 L218.8 143.7 Z" fill="#f8f9fa"/>
+<path d="M238.4 112.1 L238.4 143.7 L255.2 143.7 Z" fill="#dee2e6"/>
+<path d="M216.0 146.0 L258.0 146.0 L252.4 151.5 L221.6 151.5 Z" fill="#1b1b1b"/>
+<path fill="rgb(0 0 0 / 0.55)" fill-rule="evenodd" d="M20 46 h280 v157.5 h-280 Z M48.0 53.9 v141.8 h229.6 v-141.8 Z"/>
+</g>
+<rect x="48.0" y="53.9" width="229.6" height="141.8" fill="none" stroke="#ffffff" stroke-width="2.5"/>
+<rect x="210.4" y="101.1" width="50.4" height="63.0" fill="rgb(255 255 255 / 0.12)" stroke="#52b788" stroke-width="2.5" stroke-dasharray="6 4"/>
+<g clip-path="url(#clip340)">
+<rect x="340" y="46" width="280" height="157.5" fill="url(#sky)"/>
+<rect x="340" y="137.3" width="280" height="66.1" fill="#2a4a57"/>
+<circle cx="446.4" cy="137.3" r="15" fill="#ffd27a"/>
+<path d="M555.6 105.8 L555.6 143.7 L538.8 143.7 Z" fill="#f8f9fa"/>
+<path d="M558.4 112.1 L558.4 143.7 L575.2 143.7 Z" fill="#dee2e6"/>
+<path d="M536.0 146.0 L578.0 146.0 L572.4 151.5 L541.6 151.5 Z" fill="#1b1b1b"/>
+<path fill="rgb(0 0 0 / 0.55)" fill-rule="evenodd" d="M340 46 h280 v157.5 h-280 Z M484.2 53.9 v141.8 h113.4 v-141.8 Z"/>
+</g>
+<rect x="368.0" y="53.9" width="229.6" height="141.8" fill="none" stroke="rgb(255 255 255 / 0.5)" stroke-width="1.5"/>
+<rect x="484.2" y="53.9" width="113.4" height="141.8" fill="none" stroke="#4dabf7" stroke-width="3"/>
+<rect x="530.4" y="101.1" width="50.4" height="63.0" fill="none" stroke="#52b788" stroke-width="2" stroke-dasharray="6 4"/>
+<g clip-path="url(#clip660)">
+<rect x="660" y="46" width="280" height="157.5" fill="url(#sky)"/>
+<rect x="660" y="137.3" width="280" height="66.1" fill="#2a4a57"/>
+<circle cx="766.4" cy="137.3" r="15" fill="#ffd27a"/>
+<path d="M875.6 105.8 L875.6 143.7 L858.8 143.7 Z" fill="#f8f9fa"/>
+<path d="M878.4 112.1 L878.4 143.7 L895.2 143.7 Z" fill="#dee2e6"/>
+<path d="M856.0 146.0 L898.0 146.0 L892.4 151.5 L861.6 151.5 Z" fill="#1b1b1b"/>
+<path fill="rgb(0 0 0 / 0.55)" fill-rule="evenodd" d="M660 46 h280 v157.5 h-280 Z M688.0 83.4 v98.4 h229.6 v-98.4 Z"/>
+</g>
+<rect x="688.0" y="83.4" width="91.8" height="98.4" fill="url(#hatch)"/>
+<rect x="688.0" y="53.9" width="229.6" height="141.8" fill="none" stroke="rgb(255 255 255 / 0.5)" stroke-width="1.5"/>
+<rect x="688.0" y="83.4" width="229.6" height="98.4" fill="none" stroke="#4dabf7" stroke-width="3"/>
+<rect x="850.4" y="101.1" width="50.4" height="63.0" fill="none" stroke="#52b788" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="20" y="232" font-size="12.5" fill="#3a3a3c">The crop area (solid) is all a site ever shows.</text>
+<text x="20" y="250" font-size="12.5" fill="#3a3a3c">The focus area (dashed) is the subject.</text>
+<text x="340" y="232" font-size="12.5" fill="#3a3a3c">The frame (blue) fills the crop’s height and</text>
+<text x="340" y="250" font-size="12.5" fill="#3a3a3c">slides sideways, as far as the crop allows.</text>
+<text x="660" y="232" font-size="12.5" fill="#3a3a3c">It fills the crop’s width and slides up or down;</text>
+<text x="660" y="250" font-size="12.5" fill="#3a3a3c">the subject sits in the part text leaves free.</text>
+<text x="20" y="276" font-size="11.5" fill="#6e6e73">Positions computed with the plugin’s algorithm (visibleRect) for this photo. The original file is never changed.</text>
+</svg>

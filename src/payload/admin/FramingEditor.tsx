@@ -11,12 +11,6 @@ import { RichText, useFramingTranslation } from './i18n.js'
 import { PreviewStrip } from './PreviewStrip.js'
 import { useRect } from './useRect.js'
 
-/**
- * Crop and focus area editor for a media document. The crop area is
- * the part of the photo the site may ever show; the focus area is the part
- * every frame keeps in view where it can. Both are data: the original file is
- * never changed, so a crop can be widened again later.
- */
 /** A shape the media editor previews, as the plugin's `previewShapes` option gives it. */
 interface PreviewShapeProp {
   key: string
@@ -24,6 +18,12 @@ interface PreviewShapeProp {
   frame: Frame
 }
 
+/**
+ * Crop and focus area editor for a media document. The crop area is
+ * the part of the photo the site may ever show; the focus area is the part
+ * every frame keeps in view where it can. Both are data: the original file is
+ * never changed, so a crop can be widened again later.
+ */
 export const FramingEditor: React.FC<{
   previewShapes?: PreviewShapeProp[]
   readOnly?: boolean

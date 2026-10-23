@@ -109,6 +109,7 @@ export const DEFAULT_FRAMING: FramingConfig = defineFraming({
   },
 })
 
+/** One breakpoint's frame, as `resolveFrames` gives it. */
 export interface ResolvedFrame<K extends string = string> {
   breakpoint: BreakpointInfo<K>
   frame: Frame
@@ -146,6 +147,7 @@ export const frameVariable = (name: string, variable = DEFAULT_VARIABLE): string
 /** Prefix of the CSS variables `frameImage` writes. */
 export const DEFAULT_VARIABLE = '--frame-pos'
 
+/** Options of `framePositionCss` and `frameAspectCss`. */
 export interface FramePositionCssOptions {
   /** Prefix of the CSS variables, as passed to `frameImage`. */
   variable?: string

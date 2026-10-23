@@ -42,6 +42,7 @@ const en = {
   width: 'Width',
 }
 
+/** The key of an admin text, e.g. `done`; Payload's `t` takes it as `imageFraming:done`. */
 export type ImageFramingTranslationKey = keyof typeof en
 
 const de: Record<ImageFramingTranslationKey, string> = {

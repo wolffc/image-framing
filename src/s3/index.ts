@@ -16,6 +16,7 @@ import {
 
 import type { FramingStorage, FramingStorageFactory } from '../payload/storage.js'
 
+/** Options of `s3FramingStorage`: the same bucket and client config as `s3Storage`. */
 export interface S3FramingStorageOptions {
   /** The bucket `@payloadcms/storage-s3` stores the collection in. */
   bucket: string

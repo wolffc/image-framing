@@ -13,6 +13,7 @@ import type { Rect } from '../core/index.js'
 const SIGNATURE_LENGTH = 22
 const TOKEN = /^(\d{1,5})-(\d{1,5})-(\d{1,5})-(\d{1,5})\.([\w-]{22})$/
 
+/** What a crop token is signed for: the media id and version, with the secret. */
 export interface TokenContext {
   id: number | string
   secret: string
@@ -28,6 +29,7 @@ const sign = (rect: string, { id, secret, updatedAt }: TokenContext) =>
     .digest('base64url')
     .slice(0, SIGNATURE_LENGTH)
 
+/** The signed path segment that names a cropped copy of the media, e.g. `5000-0-5000-10000.Xy3…`. */
 export const cropToken = ({ rect, ...context }: TokenContext & { rect: Rect }): string => {
   const encoded = encodeRect(rect)
   return `${encoded}.${sign(encoded, context)}`

@@ -55,6 +55,7 @@ export const previewPlacement = (
   height: (100 / visible.height) * 100,
 })
 
+/** What `visibleRect` needs: the photo's size, its crop and focus area, and the frame. */
 export interface VisibleRectInput {
   /** Pixel size of the original photo, for its aspect ratio. */
   image: { width: number; height: number }
