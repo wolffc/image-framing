@@ -80,6 +80,11 @@ export interface CollectionFramingOptions {
    * `cacheControl` replaces its `Cache-Control` header.
    */
   endpoint?: false | { path?: string; cacheControl?: string }
+  /**
+   * The longest side of a cropped copy in pixels; larger crops are scaled
+   * down. Pass the same value to `frameImage`. Default: 4000.
+   */
+  maxSize?: number
   /** Field access for the added fields (crop, focus area, usage groups). Default: none. */
   access?: FramingAccess
 }
@@ -184,6 +189,7 @@ export const imageFramingPlugin = <K extends string = DefaultBreakpoint>({
     const {
       access,
       endpoint = {},
+      maxSize,
       previewShapes = DEFAULT_PREVIEW_SHAPES,
       rebuildSizes = true,
       storage = defaultStorage,
@@ -215,7 +221,7 @@ export const imageFramingPlugin = <K extends string = DefaultBreakpoint>({
       endpoints: [
         ...(collection.endpoints || []),
         ...(endpoint
-          ? [cropEndpoint({ ...endpoint, collection: slug, secret, storage: files })]
+          ? [cropEndpoint({ ...endpoint, collection: slug, maxSize, secret, storage: files })]
           : []),
       ],
       hooks: {

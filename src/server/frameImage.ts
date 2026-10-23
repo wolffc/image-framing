@@ -6,6 +6,9 @@ import {
   type Frames,
   frameVariable,
   type FramingConfig,
+  croppedSize,
+  DEFAULT_MAX_SIZE,
+  isFramable,
   type FramingOverride,
   type FramingSource,
   isFullRect,
@@ -72,6 +75,11 @@ export interface FrameImageOptions<K extends string = DefaultBreakpoint> {
    * derived URL; without it the URL keeps the media `url`'s origin, or none.
    */
   baseUrl?: string
+  /**
+   * The longest side of the cropped copies, as the plugin's `maxSize` option:
+   * the reported `width`/`height` are scaled to it. Default: 4000.
+   */
+  maxSize?: number
   /**
    * Prefix of the CSS variables: `base` writes `--frame-pos`, every other
    * breakpoint `--frame-pos-<name>`.
@@ -143,6 +151,7 @@ export const frameImage = <K extends string = DefaultBreakpoint>({
   media,
   override,
   baseUrl,
+  maxSize = DEFAULT_MAX_SIZE,
   routePrefix,
   secret,
   variable = DEFAULT_VARIABLE,
@@ -161,14 +170,19 @@ export const frameImage = <K extends string = DefaultBreakpoint>({
     if (resource[key] === undefined) delete resource[key]
   }
 
-  const isImage = !mimeType || mimeType.startsWith('image/')
-  if (!isImage || !width || !height) return { resource, style: {} }
+  // SVGs and other files are shown as they are.
+  if (!isFramable(mimeType) || !width || !height) return { resource, style: {} }
 
   const { crop, focus } = resolveFraming(media, override)
   if (!isFullRect(crop) && url) {
     resource.url = cropUrl(media, crop, secret, { baseUrl, routePrefix })
-    resource.width = Math.round((crop.width / 100) * width)
-    resource.height = Math.round((crop.height / 100) * height)
+    const size = croppedSize(
+      Math.round((crop.width / 100) * width),
+      Math.round((crop.height / 100) * height),
+      maxSize,
+    )
+    resource.width = size.width
+    resource.height = size.height
   }
 
   const style: Record<string, string> = {}

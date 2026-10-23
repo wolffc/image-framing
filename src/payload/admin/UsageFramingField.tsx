@@ -17,6 +17,7 @@ import {
   type FrameRule,
   FULL_RECT,
   isCompleteRect,
+  isFramable,
   resolveFraming,
   type StoredRect,
 } from '../../core/index.js'
@@ -34,6 +35,7 @@ interface MediaDoc {
   focalY?: number | null
   focusArea?: StoredRect
   height?: number | null
+  mimeType?: string | null
   url?: string | null
   width?: number | null
 }
@@ -150,6 +152,13 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
   }, [config.routes.api, config.serverURL, mediaId, relationTo])
 
   if (!mediaId || !access.read) return null
+  if (media && !isFramable(media.mimeType)) {
+    return (
+      <p className="field-description" data-image-framing-usage style={{ margin: 0 }}>
+        {t('notFramable')}
+      </p>
+    )
+  }
 
   const custom = isCompleteRect(cropField.stored) || isCompleteRect(focusField.stored)
   const mediaFraming = media ? resolveFraming(media) : null

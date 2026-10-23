@@ -23,6 +23,7 @@ const en = {
   height: 'Height',
   left: 'Left',
   loadingImage: 'Loading the image…',
+  notFramable: 'SVG images are shown as they are: they have no crop or focus area.',
   percent: '{{label}} (%)',
   preview: 'Preview',
   sameAs: 'same as {{label}}',
@@ -62,6 +63,8 @@ const de: Record<ImageFramingTranslationKey, string> = {
   height: 'Höhe',
   left: 'Links',
   loadingImage: 'Bild wird geladen …',
+  notFramable:
+    'SVG-Bilder werden so gezeigt, wie sie sind: Sie haben keinen Zuschnitt und keinen Fokusbereich.',
   percent: '{{label}} (%)',
   preview: 'Vorschau',
   sameAs: 'wie {{label}}',

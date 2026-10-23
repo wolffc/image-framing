@@ -222,6 +222,7 @@ Every option is optional except `collections`; the defaults are the behaviour wi
 | `storage`         | `(collection, doc) => FramingStorage`                                | `localDiskStorage` on the collection's `staticDir`                       | File access for the size rebuild and the cropped copies. Plugin-wide or per collection.                                                                                                                    |
 | `rebuildSizes`    | `boolean \| string[]`                                                | `true`                                                                   | Which generated image sizes are rebuilt from the crop: all, none (`false`: Payload's sizes stay made from the whole photo), or the listed size names. Plugin-wide or per collection.                       |
 | `endpoint`        | `false \| { path?: string; cacheControl?: string }`                  | `{ path: '/crop', cacheControl: 'public, max-age=31536000, immutable' }` | The cropped-copy endpoint. `false` leaves it out (e.g. an image service crops from the signed rect); with another `path`, pass `routePrefix` to `frameImage`. Plugin-wide or per collection.               |
+| `maxSize`         | `number`                                                             | `4000`                                                                   | The longest side of a cropped copy in pixels; larger crops are scaled down. Pass the same value to `frameImage`. Plugin-wide or per collection.                                                            |
 | `access`          | `{ create?, read?, update? }` (field access functions)               | none                                                                     | Field access for the added fields: `crop`, `focusArea` and the usage groups. The editors follow it: read-only without update access, hidden without read access. Plugin-wide, per collection or per usage. |
 | `secret`          | `string`                                                             | the Payload config's `secret`                                            | Signs the cropped-copy URLs; `frameImage` needs the same value.                                                                                                                                            |
 | `usages`          | `{ [path]: UsageOptions }`                                           | `{}`                                                                     | Upload fields that get their own crop and focus area (see below).                                                                                                                                          |
@@ -244,6 +245,32 @@ Every option is optional except `collections`; the defaults are the behaviour wi
 The plugin checks its configuration at startup and throws with the reason when a collection in `collections` doesn't exist or isn't an upload collection; a framed collection already has a field named `framing`, `crop` or `focusArea` (the media fields can't be renamed, since `frameImage` reads them); a usage's group name is taken on its level; a usage path matches no upload field, or one with several `relationTo` collections, `hasMany`, or a collection without framing; a frame rule names an undefined breakpoint; or `sharp` or the secret is missing.
 
 The size of a default focus area (30 % of each side, around Payload's focal point) and the smallest crop or focus area (1 %) are fixed: `frameImage` and the editors apply the same defaults without knowing the plugin's options.
+
+### Usage paths
+
+A key in `usages` names an upload field by its data path:
+
+| Path                        | Upload field                                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `pages.image`               | `image` at the top of the `pages` collection                                                                                          |
+| `pages.hero.image`          | in the `hero` group, or the named tab `hero`                                                                                          |
+| `pages.items.image`         | in every row of the `items` array                                                                                                     |
+| `header.logo`               | in the `header` global                                                                                                                |
+| `block:card.image`          | in the `card` block, wherever it is used: in a `blocks` field, a nested block, or through `blockReferences` and the config's `blocks` |
+| `block:gallery.items.image` | in the `items` array of the `gallery` block                                                                                           |
+
+Unnamed tabs, rows and collapsibles don't count, since they don't nest the data. The usage's group is stored next to the upload field and has the same localization: a localized upload field gets a localized group, unless a parent is already localized.
+
+## Limitations
+
+- **Uploads in Lexical rich text** aren't reachable as usages: they show the media's own framing.
+- **Polymorphic and `hasMany` upload fields** can't be usages; the plugin names the field at startup. The media's own crop still applies to them.
+- **SVGs** aren't framed: they keep no crop URL, get no cropped copy, keep the sizes Payload made, and the editors say so. Other non-image files are left alone too.
+- **Animated GIFs and WebPs** stay animated: every frame is cropped the same way.
+- **One crop per usage**: breakpoints only choose the visible part of it; per-breakpoint crops (art direction) aren't supported.
+- **Cropped copies are capped** at 4000 px on the long side (`maxSize`), since image components resize them anyway. Changing `maxSize` doesn't change the URLs: purge a CDN in front of the crop route.
+- **Quick saves** of one document rebuild its sizes in save order within one server process. With several processes saving the same image at the same moment, the last write wins.
+- **Storage adapters other than S3** can't have their sizes rebuilt in the bucket by default (see Storage).
 
 ## Payload internals this depends on
 

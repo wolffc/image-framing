@@ -64,6 +64,7 @@ const overrideGroup = (
   field: UploadField,
   usage: UsageOptions<string>,
   { access, componentPath, framing }: UsageContext,
+  localized: boolean,
 ): GroupField => {
   const relationTo = field.relationTo as string
   const uploadCondition = field.admin?.condition
@@ -72,6 +73,7 @@ const overrideGroup = (
     name: usage.name ?? DEFAULT_USAGE_FIELD_NAME,
     type: 'group',
     label: false,
+    ...(localized ? { localized: true } : {}),
     ...(groupAccess ? { access: groupAccess } : {}),
     admin: {
       // Shown with its image: an override without one would be invisible.
@@ -152,17 +154,21 @@ export const addUsages = (
   }
   const found = new Set<string>()
 
-  const walkBlock = (block: Block): Block => ({
+  const walkBlock = (block: Block, inLocalized = false): Block => ({
     ...block,
-    fields: walk(block.fields, `block:${block.slug}.`, dataNames(block.fields)),
+    fields: walk(block.fields, `block:${block.slug}.`, dataNames(block.fields), inLocalized),
   })
 
-  /** `level`: the names stored next to `fields`, which a usage's group must not take. */
-  const walk = (fields: Field[], prefix: string, level: string[]): Field[] =>
+  /**
+   * `level`: the names stored next to `fields`, which a usage's group must not
+   * take. `inLocalized`: a parent is localized, so the group must not be.
+   */
+  const walk = (fields: Field[], prefix: string, level: string[], inLocalized: boolean): Field[] =>
     fields.flatMap((field): Field[] => {
       const named =
         'name' in field && typeof field.name === 'string' && field.name ? field.name : null
       const inner = named ? `${prefix}${named}.` : prefix
+      const localized = inLocalized || Boolean('localized' in field && field.localized)
 
       if (field.type === 'upload' && named) {
         const path = `${prefix}${named}`
@@ -187,7 +193,11 @@ export const addUsages = (
               `but one exists there already; pick another with the usage's \`name\` option`,
           )
         }
-        return [field, overrideGroup(field, usage, context)]
+        // A localized image gets a localized override, unless a parent already is.
+        return [
+          field,
+          overrideGroup(field, usage, context, Boolean(field.localized) && !inLocalized),
+        ]
       }
       if (field.type === 'tabs') {
         return [
@@ -197,32 +207,52 @@ export const addUsages = (
               ...tab,
               fields:
                 'name' in tab && tab.name
-                  ? walk(tab.fields, `${prefix}${tab.name}.`, dataNames(tab.fields))
-                  : walk(tab.fields, prefix, level),
+                  ? walk(
+                      tab.fields,
+                      `${prefix}${tab.name}.`,
+                      dataNames(tab.fields),
+                      inLocalized || Boolean('localized' in tab && tab.localized),
+                    )
+                  : walk(tab.fields, prefix, level, inLocalized),
             })),
           },
         ]
       }
       if (field.type === 'blocks') {
-        return [{ ...field, blocks: field.blocks.map(walkBlock) }]
+        // Blocks by slug (`blockReferences`) are the config's `blocks`, walked once
+        // below; inline ones are walked here like `blocks`.
+        const references = (field as { blockReferences?: (Block | string)[] }).blockReferences
+        return [
+          {
+            ...field,
+            blocks: field.blocks.map((block) => walkBlock(block, localized)),
+            ...(references
+              ? {
+                  blockReferences: references.map((block) =>
+                    typeof block === 'string' ? block : walkBlock(block, localized),
+                  ),
+                }
+              : {}),
+          } as Field,
+        ]
       }
       if ('fields' in field && Array.isArray(field.fields)) {
         const innerLevel = named ? dataNames(field.fields) : level
-        return [{ ...field, fields: walk(field.fields, inner, innerLevel) } as Field]
+        return [{ ...field, fields: walk(field.fields, inner, innerLevel, localized) } as Field]
       }
       return [field]
     })
 
   const result: Config = {
     ...config,
-    blocks: config.blocks?.map(walkBlock),
+    blocks: config.blocks?.map((block) => walkBlock(block)),
     collections: config.collections?.map((collection) => ({
       ...collection,
-      fields: walk(collection.fields, `${collection.slug}.`, dataNames(collection.fields)),
+      fields: walk(collection.fields, `${collection.slug}.`, dataNames(collection.fields), false),
     })),
     globals: config.globals?.map((global) => ({
       ...global,
-      fields: walk(global.fields, `${global.slug}.`, dataNames(global.fields)),
+      fields: walk(global.fields, `${global.slug}.`, dataNames(global.fields), false),
     })),
   }
 

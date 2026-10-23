@@ -274,6 +274,7 @@ const withMediaSizes = (): Config => {
 const rebuilt = async (result: Config) => {
   const sharp = () => {
     const chain = {
+      metadata: async () => ({ pages: 1 }),
       rotate: () => chain,
       extract: () => chain,
       resize: () => chain,

@@ -9,6 +9,7 @@ import {
 
 import {
   FULL_RECT,
+  isFramable,
   isCompleteRect,
   isRectInside,
   normalizeRect,
@@ -82,6 +83,37 @@ export const validateFraming =
  * the focus area or the file, and drops the cropped copies of the old version.
  * `imageSizes` are the sizes to rebuild; with none it only drops the copies.
  */
+/**
+ * Two quick saves of one document rebuild its sizes in parallel, and the older
+ * one may finish last. Writes therefore run one document at a time in save
+ * order, and a rebuild whose save has been overtaken writes nothing. This
+ * holds within one server process.
+ */
+let lastTicket = 0
+const latestTicket = new Map<string, number>()
+const writeQueue = new Map<string, Promise<unknown>>()
+
+const inSaveOrder = async <T>(key: string, write: (isLatest: () => boolean) => Promise<T>) => {
+  const ticket = ++lastTicket
+  latestTicket.set(key, ticket)
+  const isLatest = () => latestTicket.get(key) === ticket
+  return {
+    /** Runs `write` after the writes of earlier saves of the same document. */
+    run: async (): Promise<T> => {
+      const previous = writeQueue.get(key) ?? Promise.resolve()
+      const current = previous.then(() => write(isLatest))
+      const settled = current.catch(() => undefined)
+      writeQueue.set(key, settled)
+      try {
+        return await current
+      } finally {
+        if (writeQueue.get(key) === settled) writeQueue.delete(key)
+        if (isLatest()) latestTicket.delete(key)
+      }
+    },
+  }
+}
+
 export const rebuildSizesAfterChange =
   ({
     imageSizes,
@@ -97,7 +129,8 @@ export const rebuildSizesAfterChange =
       !sameRect(doc.focusArea, previousDoc.focusArea) ||
       doc.filename !== previousDoc.filename ||
       JSON.stringify(doc.sizes) !== JSON.stringify(previousDoc.sizes)
-    if (!changed || !doc.mimeType?.startsWith('image/')) return doc
+    // SVGs and other files keep the sizes Payload made, if any.
+    if (!changed || !doc.mimeType || !isFramable(doc.mimeType)) return doc
 
     const files = storage(doc, req)
     await files.clearCached(`${doc.id}-`)
@@ -111,26 +144,31 @@ export const rebuildSizesAfterChange =
       )
       return doc
     }
-    const sizes = await rebuildSizes({
+    // The ticket is taken now, in save order, before the slow part.
+    const order = await inSaveOrder(`${collection.slug}:${doc.id}`, async (isLatest) => {
+      // A newer save rebuilds the sizes from its own crop: don't overwrite them.
+      if (!isLatest() || !rebuilt) return doc
+      for (const file of rebuilt.files) await writeSize(file.filename, file.data, file.mimeType)
+      // Same version, only rebuilt files: keep `updatedAt`, which the cropped-copy
+      // URLs are signed with. The adapter would set a new one otherwise, and some
+      // Payload versions (3.39) do so anyway: return what was stored, so URLs
+      // signed from the returned document match the database.
+      const stored = (await req.payload.db.updateOne({
+        collection: collection.slug,
+        data: { sizes: rebuilt.sizes, updatedAt: doc.updatedAt },
+        id: doc.id,
+        req,
+      })) as { updatedAt?: string } | null
+      return { ...doc, sizes: rebuilt.sizes, updatedAt: stored?.updatedAt ?? doc.updatedAt }
+    })
+    const rebuilt = await rebuildSizes({
       doc,
       framing: resolveFraming(doc),
       imageSizes,
       sharp: getSharp(req.payload),
-      storage: { ...files, writeSize },
+      storage: files,
     })
-    if (!sizes) return doc
-
-    // Same version, only rebuilt files: keep `updatedAt`, which the cropped-copy
-    // URLs are signed with. The adapter would set a new one otherwise, and some
-    // Payload versions (3.39) do so anyway: return what was stored, so URLs
-    // signed from the returned document match the database.
-    const stored = (await req.payload.db.updateOne({
-      collection: collection.slug,
-      data: { sizes, updatedAt: doc.updatedAt },
-      id: doc.id,
-      req,
-    })) as { updatedAt?: string } | null
-    return { ...doc, sizes, updatedAt: stored?.updatedAt ?? doc.updatedAt }
+    return order.run()
   }
 
 export const clearCacheAfterDelete =

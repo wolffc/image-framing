@@ -1,9 +1,10 @@
 import type { CollectionSlug, Endpoint, PayloadRequest } from 'payload'
 
+import { DEFAULT_MAX_SIZE, isFramable } from '../core/index.js'
 import { readCropToken } from '../server/cropToken.js'
 
 import { getSharp } from './sharp.js'
-import { type MediaDoc, toPixels } from './sizes.js'
+import { type MediaDoc, openImage, toPixels } from './sizes.js'
 import type { FramingStorage } from './storage.js'
 
 /** Where the crop endpoint sits under a collection's API route; `frameImage` assumes it. */
@@ -25,12 +26,14 @@ const notFound = () => new Response('Not found', { status: 404 })
 export const cropEndpoint = ({
   cacheControl = DEFAULT_CACHE_CONTROL,
   collection,
+  maxSize = DEFAULT_MAX_SIZE,
   path = DEFAULT_ENDPOINT_PATH,
   secret,
   storage,
 }: {
   cacheControl?: string
   collection: CollectionSlug
+  maxSize?: number
   path?: string
   secret: string
   storage: (doc: MediaDoc, req: PayloadRequest) => FramingStorage
@@ -44,7 +47,8 @@ export const cropEndpoint = ({
     const doc = (await req.payload
       .findByID({ collection, id, depth: 0, overrideAccess: false, req })
       .catch(() => null)) as MediaDoc | null
-    if (!doc?.filename || !doc.width || !doc.height || !doc.mimeType?.startsWith('image/')) {
+    // SVGs and other files have no cropped copies.
+    if (!doc?.filename || !doc.width || !doc.height || !doc.mimeType || !isFramable(doc.mimeType)) {
       return notFound()
     }
 
@@ -59,7 +63,7 @@ export const cropEndpoint = ({
     const extension = doc.filename.includes('.')
       ? doc.filename.slice(doc.filename.lastIndexOf('.'))
       : ''
-    const key = `${doc.id}-${token}${extension}`
+    const key = `${doc.id}-${token}-${maxSize}${extension}`
 
     const cached = await files.readCached(key)
     if (cached) {
@@ -70,9 +74,12 @@ export const cropEndpoint = ({
 
     const original = await files.readOriginal(doc.filename).catch(() => null)
     if (!original) return notFound()
-    const cropped = await getSharp(req.payload)(original)
-      .rotate()
+    const cropped = await (
+      await openImage(getSharp(req.payload), original)
+    )
       .extract(toPixels(rect, doc.width, doc.height))
+      // Large originals: no bigger than maxSize on the long side.
+      .resize({ fit: 'inside', height: maxSize, width: maxSize, withoutEnlargement: true })
       .toBuffer()
     await files.writeCached(key, cropped)
 
