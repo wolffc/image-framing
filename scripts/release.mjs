@@ -11,8 +11,9 @@
  * 2. `npm publish` uploads each tarball. In GitHub Actions npm authenticates
  *    through trusted publishing (OIDC) and adds provenance by itself; there is
  *    no token.
- * 3. A "New tag:" line per version, from which changesets/action creates the
- *    git tag and the GitHub release.
+ * 3. One `git-tag` event per version in the file changesets/action names in
+ *    `CHANGESETS_OUTPUT`, from which it pushes the git tag (`v1.2.3`, as
+ *    Changesets tags a single package) and creates the GitHub release.
  *
  * DRY_RUN=1 packs and runs `npm publish --dry-run`.
  */
@@ -22,6 +23,7 @@ import path from 'node:path'
 
 const dryRun = process.env.DRY_RUN === '1'
 const outDir = path.resolve('.release')
+const output = process.env.CHANGESETS_OUTPUT
 const run = (command, args) => execFileSync(command, args, { stdio: 'inherit' })
 
 fs.rmSync(outDir, { force: true, recursive: true })
@@ -45,6 +47,12 @@ for (const release of releases) {
     release.tag,
     ...(dryRun ? ['--dry-run'] : []),
   ])
-  const tag = `${release.name}@${release.version}`
-  console.log(dryRun ? `Would tag ${tag} (dist-tag ${release.tag})` : `New tag: ${tag}`)
+  const tag = `v${release.version}`
+  if (dryRun) {
+    console.log(`Would tag ${tag} (dist-tag ${release.tag})`)
+  } else {
+    console.log(`New tag: ${tag}`)
+    const event = { type: 'git-tag', tag, packageName: release.name }
+    if (output) fs.appendFileSync(output, `${JSON.stringify(event)}\n`)
+  }
 }
