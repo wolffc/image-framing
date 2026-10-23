@@ -87,7 +87,7 @@ Releases are [Changesets](https://github.com/changesets/changesets) plus one wor
 2. On `main`, the release workflow opens or updates a **"Version packages"** pull request: it bumps the version, writes the changesets into `CHANGELOG.md` and deletes them. Pull requests opened by the workflow don't trigger CI (a GitHub rule); every change in it was tested in its own pull request.
 3. Merging that pull request runs the workflow again, which publishes the new version (`pnpm release`, `scripts/release.mjs`): `changeset pack` builds and packs it with pnpm (which points the entry points at `dist/`), `npm publish` uploads the tarball. npm authenticates the workflow through **trusted publishing** (configured on npmjs.com for `release.yml`), so there is no npm token, and every version gets provenance. The workflow then tags the version and creates a GitHub release.
 
-Until 1.0 the repository is in Changesets' pre mode (`.changeset/pre.json`): versions are `0.1.0-next.N` under the npm dist-tag `next`. For 1.0: `pnpm changeset pre exit`, then a changeset for 1.0.0.
+Releases go to the npm dist-tag `latest`. For pre-releases of a coming major version, `pnpm changeset pre enter next` puts the repository in Changesets' pre mode (versions `2.0.0-next.N` under `next`), and `pnpm changeset pre exit` ends it.
 
 Publishing by hand is only for emergencies: `pnpm publish` (never `npm publish` from the folder: npm ignores `publishConfig.exports`, and `prepublishOnly` refuses it), with the maintainer's 2FA.
 

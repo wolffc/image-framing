@@ -2,8 +2,8 @@
 
 ## Supported versions
 
-Security fixes go into the latest release. Before 1.0, that is the latest
-pre-release under the `next` tag.
+Security fixes go into the latest release (the npm dist-tag `latest`), from
+1.0.0 on.
 
 ## Reporting a vulnerability
 
