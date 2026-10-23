@@ -162,13 +162,52 @@ export const framePositionCss = (
   framing: FramingConfig<string>,
   selector: string,
   { query = 'media', variable = DEFAULT_VARIABLE }: FramePositionCssOptions = {},
-): string =>
+): string => breakpointCss(framing, selector, 'object-position', variable, query)
+
+/** Sets `property` to the breakpoint's variable (`--x`, `--x-md`, …) from each breakpoint up. */
+const breakpointCss = (
+  framing: FramingConfig<string>,
+  selector: string,
+  property: string,
+  variable: string,
+  query: 'media' | 'container',
+) =>
   framing.breakpoints
     .map(({ minWidth, name }) => {
-      const rule = `${selector}{object-position:var(${frameVariable(name, variable)})}`
+      const rule = `${selector}{${property}:var(${frameVariable(name, variable)})}`
       return name === 'base' ? rule : `@${query} (min-width:${minWidth}px){${rule}}`
     })
     .join(' ')
+
+/** Prefix of the CSS variables `frameAspectVariables` writes. */
+export const DEFAULT_ASPECT_VARIABLE = '--frame-aspect'
+
+/**
+ * The frame's shape per breakpoint as CSS variables (`--frame-aspect`,
+ * `--frame-aspect-md`, …), for a box that changes shape with the frames;
+ * apply them with `frameAspectCss`.
+ */
+export const frameAspectVariables = <K extends string>(
+  framing: FramingConfig<K>,
+  frames: Frames<NoInfer<K>>,
+  variable = DEFAULT_ASPECT_VARIABLE,
+): Record<string, string> =>
+  Object.fromEntries(
+    resolveFrames(framing, frames).map(({ breakpoint, frame }) => [
+      frameVariable(breakpoint.name, variable),
+      String(Math.round(frame.aspect * 10000) / 10000),
+    ]),
+  )
+
+/**
+ * CSS that gives a box the frame's shape per breakpoint, from the variables of
+ * `frameAspectVariables`: `.frame{aspect-ratio:var(--frame-aspect)} @media …`.
+ */
+export const frameAspectCss = (
+  framing: FramingConfig<string>,
+  selector: string,
+  { query = 'media', variable = DEFAULT_ASPECT_VARIABLE }: FramePositionCssOptions = {},
+): string => breakpointCss(framing, selector, 'aspect-ratio', variable, query)
 
 /**
  * Tailwind classes that apply the frame positions, e.g.

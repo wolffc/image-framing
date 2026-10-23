@@ -52,3 +52,7 @@ package uses [Semantic Versioning](https://semver.org/).
   Postgres and MongoDB (latest and lowest Payload), Playwright e2e tests,
   a weekly run against Payload's latest release. Localized usages need
   Payload 3.80+ (a Payload bug before).
+- Rendering: `<FramedImage>` in `./next` (around `next/image`); helpers
+  `frameAspectVariables` and `frameAspectCss` for the frame shape per
+  breakpoint; `frameImage`'s result type is now `FrameImageResult`. Usage
+  option `expose` returns the computed framing to headless frontends.

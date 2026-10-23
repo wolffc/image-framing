@@ -231,6 +231,15 @@ export interface Page {
         height?: number | null;
       };
     };
+    imageFramed?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
   };
   social?: {
     image?: (number | null) | Media;
@@ -497,6 +506,7 @@ export interface PagesSelect<T extends boolean = true> {
                     height?: T;
                   };
             };
+        imageFramed?: T;
       };
   social?:
     | T

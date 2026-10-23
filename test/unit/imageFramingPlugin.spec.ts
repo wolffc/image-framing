@@ -622,3 +622,35 @@ describe('imageFramingPlugin options', () => {
     })
   })
 })
+
+describe('exposed usages', () => {
+  const exposedNames = (result: Config) => names(heroFields(result))
+
+  it('adds a virtual field next to the upload field, named after it', () => {
+    const result = run({ usages: { 'pages.hero.media': { expose: true } } })
+    const exposed = heroFields(result).find(
+      (f) => 'name' in f && f.name === 'mediaFramed',
+    ) as Field & {
+      virtual?: boolean
+    }
+
+    expect(exposedNames(result)).toEqual(['type', 'media', 'imageFraming', 'mediaFramed'])
+    expect(exposed).toMatchObject({ type: 'json', virtual: true })
+  })
+
+  it('takes another name and refuses one that is taken', () => {
+    expect(
+      exposedNames(run({ usages: { 'pages.hero.media': { expose: { name: 'heroImage' } } } })),
+    ).toContain('heroImage')
+    expect(() => run({ usages: { 'pages.hero.media': { expose: { name: 'type' } } } })).toThrow(
+      /exposes "type"/,
+    )
+  })
+
+  it('adds nothing without expose or when the plugin is disabled', () => {
+    expect(exposedNames(run({ usages: { 'pages.hero.media': {} } }))).not.toContain('mediaFramed')
+    expect(
+      exposedNames(run({ disabled: true, usages: { 'pages.hero.media': { expose: true } } })),
+    ).not.toContain('mediaFramed')
+  })
+})

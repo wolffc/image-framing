@@ -10,7 +10,7 @@ export {
   cropUrl,
   type CropUrlOptions,
   type FrameableMedia,
-  type FramedImage,
+  type FrameImageResult,
   type FramedResource,
   frameImage,
   type FrameImageOptions,

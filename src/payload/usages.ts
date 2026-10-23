@@ -1,4 +1,12 @@
-import type { Block, Config, Field, FieldHook, GroupField, UploadField } from 'payload'
+import type {
+  Block,
+  CollectionSlug,
+  Config,
+  Field,
+  FieldHook,
+  GroupField,
+  UploadField,
+} from 'payload'
 
 import {
   type DefaultBreakpoint,
@@ -6,10 +14,14 @@ import {
   type FramingConfig,
   type FramingOverride,
   type Label,
+  matchFrames,
+  type Rect,
   FULL_RECT,
   isCompleteRect,
   normalizeRect,
 } from '../core/index.js'
+
+import { type FrameableMedia, frameImage } from '../server/frameImage.js'
 
 import { dataNames, type FramingAccess, rectField } from './fields.js'
 import { fieldLabel } from './i18n.js'
@@ -38,6 +50,76 @@ export interface UsageOptions<K extends string = DefaultBreakpoint> {
   }
   /** Field access for the usage's group. Default: the plugin's `access`. */
   access?: FramingAccess
+  /**
+   * For frontends that only see the REST or GraphQL API: adds a virtual
+   * field next to the upload field (`<field>Framed`, or `expose.name`) with
+   * what `frameImage` returns for this usage (`url`, `width`, `height`, `alt`,
+   * `style` with the positions, `focus`), computed on the server with the
+   * frames of the matching rule, so the secret stays in the CMS. Costs one
+   * extra query per read when the upload isn't populated (`depth: 0`).
+   */
+  expose?: boolean | { name?: string }
+}
+
+/** What an exposed usage's virtual field holds. */
+export interface ExposedFraming {
+  alt?: string | null
+  url: string
+  width?: number | null
+  height?: number | null
+  mimeType?: string | null
+  /** The `object-position` per breakpoint, as CSS variables. */
+  style: Record<string, string>
+  /** The focus area in percent of the served image. */
+  focus?: Rect
+}
+
+/** The virtual field of an exposed usage, filled on read. */
+const exposedField = (
+  field: UploadField,
+  usage: UsageOptions<string>,
+  { framing, maxSize, secret }: UsageContext,
+  name: string,
+  groupName: string,
+): Field => {
+  const relationTo = field.relationTo as string
+  return {
+    name,
+    type: 'json',
+    virtual: true,
+    admin: { hidden: true },
+    hooks: {
+      afterRead: [
+        async ({ req, siblingData }): Promise<ExposedFraming | null> => {
+          const value = siblingData?.[field.name] as FrameableMedia | number | string | null
+          if (!value) return null
+          // Not populated (depth 0): read it as the requesting user may.
+          const media =
+            typeof value === 'object'
+              ? value
+              : ((await req.payload
+                  .findByID({
+                    collection: relationTo as CollectionSlug,
+                    depth: 0,
+                    id: value,
+                    overrideAccess: false,
+                    req,
+                  })
+                  .catch(() => null)) as FrameableMedia | null)
+          if (!media) return null
+          const { focus, resource, style } = frameImage({
+            framing,
+            frames: matchFrames(usage.frames, siblingData),
+            maxSize: maxSize(relationTo),
+            media,
+            override: siblingData?.[groupName] as FramingOverride,
+            secret,
+          })
+          return { ...resource, focus, style }
+        },
+      ],
+    },
+  }
 }
 
 /** The default name of a usage's group. */
@@ -116,6 +198,10 @@ const overrideGroup = (
 interface UsageContext {
   /** Default field access for the groups. */
   access?: FramingAccess
+  /** Signs the URLs of exposed usages. */
+  secret: string
+  /** The `maxSize` option of a framed collection. */
+  maxSize: (collection: string) => number | undefined
   /** The usage editor; null leaves out the editor and the hooks (plugin disabled). */
   componentPath: string | null
   framing: FramingConfig<string>
@@ -193,10 +279,23 @@ export const addUsages = (
               `but one exists there already; pick another with the usage's \`name\` option`,
           )
         }
+        const exposed = usage.expose
+          ? (typeof usage.expose === 'object' && usage.expose.name) || `${field.name}Framed`
+          : null
+        if (exposed && level.includes(exposed)) {
+          throw new Error(
+            `imageFraming: usage "${path}" exposes "${exposed}" next to the upload field, but a ` +
+              `field of that name exists there already; pick another with \`expose: { name }\``,
+          )
+        }
         // A localized image gets a localized override, unless a parent already is.
+        const localized = Boolean(field.localized) && !inLocalized
         return [
           field,
-          overrideGroup(field, usage, context, Boolean(field.localized) && !inLocalized),
+          overrideGroup(field, usage, context, localized),
+          ...(exposed && context.componentPath !== null
+            ? [exposedField(field, usage, context, exposed, groupName)]
+            : []),
         ]
       }
       if (field.type === 'tabs') {
