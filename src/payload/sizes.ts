@@ -15,6 +15,16 @@ type SizeData = {
 export type MediaDoc = TypeWithID &
   Partial<FileData> & { sizes?: Record<string, SizeData | undefined> | null; updatedAt?: string }
 
+/**
+ * The image to crop and resize: every frame of an animated GIF or WebP, so
+ * the animation stays; a still image turned upright by its EXIF orientation.
+ */
+export const openImage = async (sharp: Sharp, data: Buffer) => {
+  const { pages = 1 } = await sharp(data).metadata()
+  if (pages > 1) return sharp(data, { animated: true })
+  return sharp(data).rotate()
+}
+
 /** Pixel rect of `rect` (percent) in an image of `width` x `height`. */
 export const toPixels = (
   rect: Framing['crop'],
@@ -31,11 +41,19 @@ export const toPixels = (
   }
 }
 
+export interface RebuiltSizes {
+  /** The size files to write, under the names Payload gave them. */
+  files: { data: Buffer; filename: string; mimeType?: string }[]
+  /** `doc.sizes` with the new dimensions and file sizes. */
+  sizes: Record<string, SizeData>
+}
+
 /**
  * Rebuilds every generated size of a media document from its crop area, under
  * the file names Payload gave them. Sizes with a fixed shape (`square`, `og`)
  * show the part the framing algorithm picks around the focus area; sizes with
- * only a width are the whole crop area at that width.
+ * only a width are the whole crop area at that width. Returns the files to
+ * write rather than writing them, so the caller can write them in order.
  */
 export const rebuildSizes = async ({
   doc,
@@ -48,13 +66,14 @@ export const rebuildSizes = async ({
   framing: Framing
   imageSizes: ImageSize[]
   sharp: Sharp
-  storage: FramingStorage & Required<Pick<FramingStorage, 'writeSize'>>
-}): Promise<Record<string, SizeData> | null> => {
+  storage: Pick<FramingStorage, 'readOriginal'>
+}): Promise<RebuiltSizes | null> => {
   if (!doc.filename || !doc.width || !doc.height || !doc.sizes) return null
 
   const original = await storage.readOriginal(doc.filename)
   const crop = toPixels(framing.crop, doc.width, doc.height)
   const sizes: Record<string, SizeData> = { ...(doc.sizes as Record<string, SizeData>) }
+  const files: RebuiltSizes['files'] = []
 
   for (const size of imageSizes) {
     const current = sizes[size.name]
@@ -79,14 +98,19 @@ export const rebuildSizes = async ({
       continue
     }
 
-    const { data, info } = await sharp(original)
-      .rotate()
+    const { data, info } = await (
+      await openImage(sharp, original)
+    )
       .extract(region)
       .resize(resize)
       .toBuffer({ resolveWithObject: true })
-    await storage.writeSize(current.filename, data, current.mimeType ?? doc.mimeType ?? undefined)
+    files.push({
+      data,
+      filename: current.filename,
+      mimeType: current.mimeType ?? doc.mimeType ?? undefined,
+    })
     sizes[size.name] = { ...current, filesize: info.size, height: info.height, width: info.width }
   }
 
-  return sizes
+  return { files, sizes }
 }

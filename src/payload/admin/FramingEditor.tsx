@@ -3,7 +3,7 @@
 import { FieldLabel, useDocumentInfo, useFormFields } from '@payloadcms/ui'
 import React from 'react'
 
-import { type Frame, FULL_RECT, type Label, resolveFraming } from '../../core/index.js'
+import { type Frame, FULL_RECT, isFramable, type Label, resolveFraming } from '../../core/index.js'
 
 import { FramingCanvas } from './FramingCanvas.js'
 import { fieldAccess } from './permissions.js'
@@ -42,6 +42,18 @@ export const FramingEditor: React.FC<{
   // The editor is a UI field without access of its own: it follows the crop field's.
   const access = fieldAccess(docPermissions, 'crop', { isNew: !id })
   if (!access.read || (mimeType && !mimeType.startsWith('image/'))) return null
+  if (!isFramable(mimeType)) {
+    return (
+      <div
+        className="field-type"
+        data-image-framing-editor
+        style={{ marginBottom: 'var(--spacing-field)' }}
+      >
+        <FieldLabel label={t('cropAndFocusArea')} />
+        <p style={{ color: 'var(--theme-elevation-500)', margin: 0 }}>{t('notFramable')}</p>
+      </div>
+    )
+  }
   const readOnly = readOnlyProp || !access.edit
 
   const { crop, focus } = resolveFraming({

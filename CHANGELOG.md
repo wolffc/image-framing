@@ -44,3 +44,7 @@ package uses [Semantic Versioning](https://semver.org/).
   storage plugin the plugin reads originals through its handlers. The size
   rebuild runs after the storage plugins' uploads, whatever the plugin order.
   `FramingStorage.writeSize` is optional; storage factories also get `req`.
+- Edge cases: localized upload fields get a localized override (not inside
+  localized parents); SVGs aren't framed; animated GIFs and WebPs stay
+  animated; cropped copies are capped at `maxSize` (4000 px); quick saves
+  write their sizes in save order; blocks in `blockReferences` are found.

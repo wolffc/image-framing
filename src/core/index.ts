@@ -31,6 +31,7 @@ export {
   type VisibleRectInput,
 } from './frame.js'
 export { type Label, labelText } from './label.js'
+export { croppedSize, DEFAULT_MAX_SIZE, isFramable } from './media.js'
 export {
   DEFAULT_FOCUS_SIZE,
   defaultFocusArea,
