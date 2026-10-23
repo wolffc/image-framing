@@ -102,10 +102,21 @@ test('switching the photo switches every widget', async ({ page }) => {
 })
 
 test('the page fits the screen and its images load', async ({ page }) => {
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  )
-  expect(overflow).toBeLessThanOrEqual(0)
+  // Elements that reach past the right edge of the screen (outside a scroller).
+  const sticksOut = await page.evaluate(() => {
+    const width = document.documentElement.clientWidth
+    const clipped = (el: Element | null): boolean =>
+      !!el && (getComputedStyle(el).overflowX !== 'visible' || clipped(el.parentElement))
+    return [...document.querySelectorAll('body *')]
+      .filter((el) => el.getBoundingClientRect().right > width + 0.5 && !clipped(el.parentElement))
+      .map((el) => `${el.tagName.toLowerCase()}.${el.className} (${el.textContent?.slice(0, 30)})`)
+  })
+  expect(sticksOut).toEqual([])
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    ),
+  ).toBeLessThanOrEqual(0)
 
   for (const img of await page.locator('img').all()) {
     await img.scrollIntoViewIfNeeded()
