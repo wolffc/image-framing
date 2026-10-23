@@ -4,6 +4,12 @@ All notable changes to `@wolffc80/payload-image-framing` are listed here. The
 format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 package uses [Semantic Versioning](https://semver.org/).
 
+## 0.1.0-next.2
+
+### Patch Changes
+
+- 99f1247: The package's homepage is now the showcase page, https://wolffc.github.io/image-framing/, with live widgets that run the framing in the browser.
+
 ## 0.1.0-next.1
 
 ### Patch Changes
