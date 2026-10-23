@@ -19,7 +19,17 @@ export default defineConfig({
       '@wolffc80/payload-image-framing/core': path.join(root, 'src/core/index.ts'),
     },
   },
-  build: { outDir: path.join(root, 'site/dist'), emptyOutDir: true },
+  build: {
+    outDir: path.join(root, 'site/dist'),
+    emptyOutDir: true,
+    // social.html is the source of the repository's social preview image.
+    rollupOptions: {
+      input: {
+        main: path.join(import.meta.dirname, 'index.html'),
+        social: path.join(import.meta.dirname, 'social.html'),
+      },
+    },
+  },
   server: { host: '0.0.0.0', port: 5173, fs: { allow: [root] } },
   preview: { host: '0.0.0.0', port: 4173 },
 })
