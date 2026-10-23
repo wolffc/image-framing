@@ -12,6 +12,9 @@
 | [headless](headless)                         | REST and GraphQL clients with the usage option `expose`                                                     | Snippet      |
 
 The runnable apps are small Payload + Next projects using SQLite: copy one,
-then `cp .env.example .env && npm install && npm run dev`. CI builds each of
+then `cp .env.example .env && npm install && npm run dev`. Until the package's
+first release on npm, `npm install` can't find it: build the package
+(`pnpm build && pnpm pack`) and install the tarball instead
+(`npm install /path/to/wolffc-payload-image-framing-*.tgz`). CI builds each of
 them against the packed package (`pnpm build:examples`). The repository's
 [dev app](../dev) shows everything together.
