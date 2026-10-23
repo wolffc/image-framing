@@ -122,8 +122,11 @@ export const rebuildSizesAfterChange =
     imageSizes: ImageSize[]
     storage: (doc: MediaDoc, req: PayloadRequest) => FramingStorage
   }): CollectionAfterChangeHook =>
-  async ({ collection, doc, previousDoc, req }) => {
+  async ({ collection, context, doc, previousDoc, req }) => {
     const changed =
+      // `payload.update({ …, context: { imageFraming: { rebuild: true } } })` forces it,
+      // e.g. to regenerate the sizes of existing media once.
+      (context?.imageFraming as { rebuild?: boolean } | undefined)?.rebuild === true ||
       !previousDoc ||
       !sameRect(doc.crop, previousDoc.crop) ||
       !sameRect(doc.focusArea, previousDoc.focusArea) ||

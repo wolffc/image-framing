@@ -1,0 +1,41 @@
+---
+// A framed image in Astro (server rendering): the cropped copy in a box of
+// the frame's shape, placed around the focus area per breakpoint.
+import {
+  frameAspectCss,
+  frameAspectVariables,
+  framePositionCss,
+  matchFrames,
+} from '@wolffc/payload-image-framing/core'
+import { frameImage } from '@wolffc/payload-image-framing/server'
+
+import { framing, heroFrames } from '../framing.config' // shared with payload.config.ts
+
+const { media, override, siblings } = Astro.props
+const frames = matchFrames(heroFrames, siblings) ?? { base: { aspect: 16 / 9 } }
+const { resource, style } = frameImage({
+  framing,
+  frames,
+  media,
+  override,
+  secret: import.meta.env.PAYLOAD_SECRET,
+})
+const variables = Object.entries({ ...style, ...frameAspectVariables(framing, frames) })
+  .map(([name, value]) => `${name}:${value}`)
+  .join(';')
+const css = framePositionCss(framing, '.framed img') + ' ' + frameAspectCss(framing, '.framed')
+---
+
+<style set:html={css}></style>
+<div class="framed" style={variables}>
+  <img src={resource.url} width={resource.width} height={resource.height} alt={resource.alt ?? ''} />
+</div>
+
+<style>
+  .framed img {
+    display: block;
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+  }
+</style>

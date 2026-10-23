@@ -41,6 +41,7 @@ const eslintConfig = [
       'dev/next-env.d.ts',
       'dev/payload-types.ts',
       'dev/app/(payload)/',
+      'examples/*/app/(payload)/',
     ],
   },
 ]

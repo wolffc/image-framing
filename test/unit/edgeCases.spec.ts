@@ -399,3 +399,47 @@ describe('usages', () => {
     )
   })
 })
+
+describe('forced rebuild', () => {
+  it('rebuilds the sizes of an unchanged document when the context asks for it', async () => {
+    const written: string[] = []
+    const storage = (): FramingStorage => ({
+      readOriginal: async () => Buffer.from('original'),
+      writeSize: async (name) => void written.push(name),
+      readCached: async () => null,
+      writeCached: async () => {},
+      clearCached: async () => {},
+    })
+    const result = imageFramingPlugin({ collections: { media: { storage } } })(base()) as Config
+    const collection = result.collections!.find((c) => c.slug === 'media') as CollectionConfig
+    const hook = collection.hooks!.afterChange!.at(-1) as CollectionAfterChangeHook
+    const chain = {
+      metadata: async () => ({ pages: 1 }),
+      rotate: () => chain,
+      extract: () => chain,
+      resize: () => chain,
+      toBuffer: async () => ({ data: Buffer.from('x'), info: { size: 1, width: 1, height: 1 } }),
+    }
+    const doc = { ...media, sizes: { thumbnail: { filename: 'beach-400.jpg' } } }
+    const save = (context: object) =>
+      hook({
+        collection: { slug: 'media' },
+        context,
+        doc,
+        operation: 'update',
+        previousDoc: doc,
+        req: {
+          payload: {
+            config: { sharp: () => chain },
+            db: { updateOne: async () => ({}) },
+            logger: console,
+          },
+        },
+      } as unknown as Parameters<CollectionAfterChangeHook>[0])
+
+    await save({})
+    expect(written).toEqual([])
+    await save({ imageFraming: { rebuild: true } })
+    expect(written).toEqual(['beach-400.jpg'])
+  })
+})

@@ -115,6 +115,14 @@ jobs:
             test-results/
           retention-days: 7
 
+  examples:
+    name: Build the examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm build:examples
+
   storage:
     name: Cloud storage (S3)
     runs-on: ubuntu-latest

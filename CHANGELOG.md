@@ -56,3 +56,7 @@ package uses [Semantic Versioning](https://semver.org/).
   `frameAspectVariables` and `frameAspectCss` for the frame shape per
   breakpoint; `frameImage`'s result type is now `FrameImageResult`. Usage
   option `expose` returns the computed framing to headless frontends.
+- Examples: runnable apps (quick start, per-usage overrides, breakpoints, an
+  existing project) built in CI, and snippets (cloud storage, without Next.js,
+  several collections, headless). `context: { imageFraming: { rebuild: true } }`
+  on an update forces the size rebuild, e.g. to regenerate existing sizes.

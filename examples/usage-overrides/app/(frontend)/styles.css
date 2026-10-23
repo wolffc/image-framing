@@ -1,0 +1,27 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0 auto;
+  max-width: 1100px;
+  padding: 16px;
+}
+
+.header {
+  position: relative;
+}
+
+.header h1 {
+  color: white;
+  display: none;
+  inset: 0 55% 0 0;
+  margin: 0;
+  padding: 32px;
+  position: absolute;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.6);
+}
+
+/* The text covers the left 45 % of the wide header from md up, as frames.ts says. */
+@media (min-width: 768px) {
+  .header.wide h1 {
+    display: block;
+  }
+}
