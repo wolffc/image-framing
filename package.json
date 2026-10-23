@@ -69,6 +69,7 @@
     "build:examples": "bash scripts/build-examples.sh",
     "build:swc": "swc ./src -d ./dist --config-file .swcrc --strip-leading-paths",
     "build:types": "tsc -p tsconfig.build.json",
+    "changeset": "changeset",
     "clean": "rm -rf dist *.tsbuildinfo",
     "dev": "next dev dev --webpack --hostname 0.0.0.0 --port 3000",
     "dev:payload": "cross-env PAYLOAD_CONFIG_PATH=./dev/payload.config.ts payload",
@@ -80,6 +81,7 @@
     "lint:fix": "eslint . --fix",
     "prepack": "pnpm build",
     "prepublishOnly": "node scripts/require-pnpm.mjs",
+    "release": "node scripts/release.mjs",
     "test": "vitest run --project unit",
     "test:e2e": "playwright test",
     "test:int": "vitest run --project int",
@@ -105,6 +107,7 @@
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1156.0",
+    "@changesets/cli": "^3.0.3",
     "@payloadcms/db-mongodb": "3.91.0",
     "@payloadcms/db-postgres": "3.91.0",
     "@payloadcms/db-sqlite": "3.91.0",

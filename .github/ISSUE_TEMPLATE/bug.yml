@@ -1,0 +1,33 @@
+name: Bug report
+description: Something doesn't work as the README says
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens
+      description: What you did, what you expected, and what happened instead. Error messages and screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Plugin configuration
+      description: Your `imageFramingPlugin({ … })` options, and the upload collection's `upload` settings.
+      render: ts
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: '@wolffc80/payload-image-framing, payload, next, node, database adapter'
+      placeholder: 0.1.0, payload 3.91.0, next 16.4.2, node 24, db-postgres
+    validations:
+      required: true
+  - type: dropdown
+    id: storage
+    attributes:
+      label: File storage
+      options:
+        - Local disk (staticDir)
+        - '@payloadcms/storage-s3 (S3, R2, MinIO)'
+        - Another storage adapter

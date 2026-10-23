@@ -66,6 +66,20 @@ CI (`.github/workflows/ci.yml`) runs on every pull request: lint, format check, 
 ## Pull requests
 
 - One issue per pull request, on a branch `issue-<nr>-<short-description>`.
-- Add tests for what you change, and an entry under "Unreleased" in `CHANGELOG.md` for anything a user notices.
+- Add tests for what you change.
+- Add a changeset for anything a user of the package notices: `pnpm changeset` asks for the kind of change and a sentence for the changelog. Changes to tests, CI, the dev app or the docs site need none.
 - Keep `pnpm lint`, `pnpm format:check`, `pnpm typecheck` and the tests green.
-- Releases are packed and published with pnpm: only pnpm applies `publishConfig.exports`, which points the entry points at `dist/`. `prepublishOnly` refuses npm.
+
+## Releases
+
+Releases are [Changesets](https://github.com/changesets/changesets) plus one workflow (`.github/workflows/release.yml`):
+
+1. Pull requests bring changesets (`.changeset/*.md`).
+2. On `main`, the release workflow opens or updates a **"Version packages"** pull request: it bumps the version, writes the changesets into `CHANGELOG.md` and deletes them. Pull requests opened by the workflow don't trigger CI (a GitHub rule); every change in it was tested in its own pull request.
+3. Merging that pull request runs the workflow again, which publishes the new version (`pnpm release`, `scripts/release.mjs`): `changeset pack` builds and packs it with pnpm (which points the entry points at `dist/`), `npm publish` uploads the tarball. npm authenticates the workflow through **trusted publishing** (configured on npmjs.com for `release.yml`), so there is no npm token, and every version gets provenance. The workflow then tags the version and creates a GitHub release.
+
+Until 1.0 the repository is in Changesets' pre mode (`.changeset/pre.json`): versions are `0.1.0-next.N` under the npm dist-tag `next`. For 1.0: `pnpm changeset pre exit`, then a changeset for 1.0.0.
+
+Publishing by hand is only for emergencies: `pnpm publish` (never `npm publish` from the folder: npm ignores `publishConfig.exports`, and `prepublishOnly` refuses it), with the maintainer's 2FA.
+
+The supported Payload versions and how they change are under "Compatibility" in the README.

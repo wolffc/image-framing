@@ -5,3 +5,4 @@ dev/.next/
 dev/payload-types.ts
 dev/app/(payload)/
 examples/*/app/(payload)/
+.release/
