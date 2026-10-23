@@ -54,7 +54,8 @@ export default buildConfig({
 - `frameImage` works unchanged as long as the media `url` is Payload's file
   route (`/api/media/file/…`, the default). With `disablePayloadAccessControl`
   the `url` points to the bucket: pass `routePrefix: '/api/media/crop'` to
-  `frameImage`.
+  `frameImage`, and use `s3FramingStorage`: without Payload's file route the
+  plugin can't read the originals through the storage plugin.
 - Other storage adapters (`-gcs`, `-azure`, `-vercel-blob`, `-uploadthing`)
   work without a framing storage: the plugin reads the originals through the
   storage plugin and caches cropped copies on local disk, but it can't rewrite

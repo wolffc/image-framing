@@ -63,8 +63,6 @@ export const objectKey = (
     : path.posix.join(docFolder || clean(prefix), filename)
 }
 
-const clients = new Map<string, S3Client>()
-
 /**
  * Reads originals from and writes rebuilt sizes and cropped copies to the
  * bucket that `@payloadcms/storage-s3` uses, so sizes are rebuilt from the
@@ -87,12 +85,9 @@ export const s3FramingStorage = ({
   prefix,
   useCompositePrefixes,
 }: S3FramingStorageOptions): FramingStorageFactory => {
-  const s3 = () => {
-    if (client) return client
-    const key = `${bucket}:${JSON.stringify(config.endpoint ?? '')}:${String(config.region ?? '')}`
-    if (!clients.has(key)) clients.set(key, new S3Client(config))
-    return clients.get(key)!
-  }
+  // One client per storage, made on first use.
+  let own: S3Client | undefined
+  const s3 = () => client ?? (own ??= new S3Client(config))
 
   const read = async (Key: string): Promise<Buffer | null> => {
     try {
