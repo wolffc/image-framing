@@ -87,7 +87,7 @@ export interface FrameImageOptions<K extends string = DefaultBreakpoint> {
   variable?: string
 }
 
-export interface FramedImage {
+export interface FrameImageResult {
   resource: FramedResource
   style: Record<string, string>
   /**
@@ -155,7 +155,7 @@ export const frameImage = <K extends string = DefaultBreakpoint>({
   routePrefix,
   secret,
   variable = DEFAULT_VARIABLE,
-}: FrameImageOptions<K>): FramedImage => {
+}: FrameImageOptions<K>): FrameImageResult => {
   const { alt, filename, height, mimeType, updatedAt, url, width } = media
   const resource: FramedResource = {
     alt,

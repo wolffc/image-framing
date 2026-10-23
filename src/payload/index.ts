@@ -21,4 +21,4 @@ export {
   handlerStorage,
   localDiskStorage,
 } from './storage.js'
-export { DEFAULT_USAGE_FIELD_NAME, type UsageOptions } from './usages.js'
+export { DEFAULT_USAGE_FIELD_NAME, type ExposedFraming, type UsageOptions } from './usages.js'

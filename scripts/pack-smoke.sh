@@ -58,7 +58,7 @@ cat > expected.json <<'JSON'
   "@wolffc/payload-image-framing/core": ["resolveFraming", "visibleRect", "objectPosition", "matchFrames"],
   "@wolffc/payload-image-framing/server": ["cropToken", "readCropToken", "frameImage", "cropUrl"],
   "@wolffc/payload-image-framing/client": ["FramingEditor", "UsageFramingField", "FramingCanvas", "PreviewStrip"],
-  "@wolffc/payload-image-framing/next": ["frameImage"],
+  "@wolffc/payload-image-framing/next": ["frameImage", "FramedImage"],
   "@wolffc/payload-image-framing/s3": ["s3FramingStorage"]
 }
 JSON
@@ -122,6 +122,49 @@ echo "import * as core from '@wolffc/payload-image-framing/core'; console.log(co
 pnpm exec esbuild browser.mjs --bundle --platform=browser --format=esm --log-level=error --outfile=browser.out.js
 echo "ok   ./core bundles for the browser"
 
+echo "== rendering without Next.js or Payload (react-dom/server)"
+mkdir "$work/plain"
+(
+  cd "$work/plain"
+  echo '{ "name": "plain", "private": true, "type": "module" }' > package.json
+  # npm with --legacy-peer-deps installs no peers: no next, no payload.
+  npm install --silent --no-audit --no-fund --legacy-peer-deps "$tarball" react@19 react-dom@19 >/dev/null
+  cat > render.mjs <<'JS'
+import { defineFraming, frameAspectVariables, framePositionCss } from '@wolffc/payload-image-framing/core'
+import { frameImage } from '@wolffc/payload-image-framing/server'
+import { createElement as h } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+
+for (const name of ['next', 'payload']) {
+  let installed = true
+  try {
+    import.meta.resolve(name)
+  } catch {
+    installed = false
+  }
+  if (installed) throw new Error(`${name} is installed; this check needs a project without it`)
+}
+
+const framing = defineFraming({ breakpoints: { base: {}, lg: { minWidth: 1280 } } })
+const frames = { base: { aspect: 4 / 5 }, lg: { aspect: 21 / 9 } }
+const media = {
+  id: 7, alt: 'Beach', filename: 'beach.jpg', mimeType: 'image/jpeg', url: '/api/media/file/beach.jpg',
+  width: 3000, height: 1000, crop: { x: 10, y: 0, width: 80, height: 100 },
+}
+const { resource, style } = frameImage({ framing, frames, media, secret: 'secret' })
+const html = renderToStaticMarkup(
+  h('div', { className: 'frame', style: { ...style, ...frameAspectVariables(framing, frames) } },
+    h('style', null, framePositionCss(framing, '.frame img')),
+    h('img', { alt: resource.alt, src: resource.url, style: { objectFit: 'cover' } })),
+)
+for (const part of ['src="/api/media/crop/7/', '--frame-pos-lg:', '--frame-aspect:0.8', 'object-position:var(--frame-pos-lg)']) {
+  if (!html.includes(part)) throw new Error(`Missing ${part} in ${html}`)
+}
+console.log('ok   rendered with react-dom/server, without next or payload installed')
+JS
+  node render.mjs
+)
+
 if [ "${SKIP_APP_BUILD:-}" = "1" ]; then
   echo "skipped app build (SKIP_APP_BUILD=1)"
   exit 0
@@ -149,4 +192,4 @@ done
 echo "ok   import map has both editors from @wolffc/payload-image-framing/client"
 
 NEXT_TELEMETRY_DISABLED=1 pnpm exec next build > build.log 2>&1 || { tail -60 build.log >&2; exit 1; }
-echo "ok   next build (admin with the package's editors, ./core in a client component)"
+echo "ok   next build (admin with the package's editors, ./core in a client component, <FramedImage>)"

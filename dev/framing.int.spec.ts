@@ -337,6 +337,30 @@ describe('usage overrides', () => {
     },
   )
 
+  it('exposes the framed hero on read, for headless frontends', async () => {
+    for (const depth of [0, 1]) {
+      const read = await payload.findByID({ collection: 'pages', depth, id: page.id })
+      const exposed = read.hero?.imageFramed as {
+        url: string
+        width: number
+        height: number
+        style: Record<string, string>
+      }
+
+      expect(exposed.url, `depth ${depth}`).toBe(
+        frameImage({ media: photo, override: page.hero?.imageFraming, secret }).resource.url,
+      )
+      expect([exposed.width, exposed.height]).toEqual([800, 800])
+      // The hero's frame rule for its layout: base, md and lg positions.
+      expect(Object.keys(exposed.style)).toEqual([
+        '--frame-pos',
+        '--frame-pos-md',
+        '--frame-pos-lg',
+      ])
+      expect((await request(exposed.url)).status).toBe(200)
+    }
+  })
+
   it('stores a global’s override', async () => {
     await payload.updateGlobal({
       slug: 'header',

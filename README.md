@@ -35,9 +35,9 @@ Work in progress: being extracted from weflyhome.com into a standalone package. 
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
 | `@wolffc/payload-image-framing`        | `imageFramingPlugin`, its options, `FramingStorage`, `localDiskStorage`                                                   | Payload config                             |
 | `@wolffc/payload-image-framing/core`   | Rects, `resolveFraming`, `visibleRect`, `objectPosition`, `matchFrames`, `previewPlacement`, `relativeRect` and the types | Anywhere, including client components      |
-| `@wolffc/payload-image-framing/server` | `frameImage`, `cropUrl`, `cropToken`/`readCropToken`                                                                      | Server only: they use the secret           |
+| `@wolffc/payload-image-framing/server` | `frameImage`, `cropUrl`, `cropToken`/`readCropToken`: no Next or Payload needed                                           | Server only: they use the secret           |
 | `@wolffc/payload-image-framing/client` | `FramingEditor`, `UsageFramingField`, `FramingCanvas`, `PreviewStrip` (`'use client'`)                                    | Admin panel, loaded through the import map |
-| `@wolffc/payload-image-framing/next`   | Next.js helpers; for now it re-exports `frameImage`                                                                       | Next server components                     |
+| `@wolffc/payload-image-framing/next`   | `<FramedImage>` (around `next/image`), and `frameImage` again                                                             | Next server components                     |
 
 Every entry lists its exports explicitly; `test/unit/publicApi.spec.ts` snapshots them, so a change to the public API shows up in review.
 
@@ -124,6 +124,65 @@ const { resource, style } = frameImage({
 })
 // <div style={style}><Image src={resource.url} className="object-cover object-[var(--frame-pos)] min-[768px]:object-[var(--frame-pos-md)]" … /></div>
 ```
+
+### Rendering
+
+`frameImage` (from `./server`) turns a media document, the usage's override and its frames into what an image tag needs: the URL of the cropped copy, its pixel size, the `object-position` per breakpoint as CSS variables (`style`), and the focus area within the served image (`focus`, for layouts that draw around the subject). It needs neither Next.js nor Payload, only the secret, so it runs on any server.
+
+**Next.js:** `<FramedImage>` from `./next` wraps `next/image` in a box of the frame's shape, positioned per breakpoint, with one small stylesheet per framing config (no Tailwind needed):
+
+```tsx
+import { matchFrames } from '@wolffc/payload-image-framing/core'
+import { FramedImage } from '@wolffc/payload-image-framing/next'
+
+// A server component; `framing` and `headerFrames` as configured for the plugin.
+export const Header = ({ page }: { page: Page }) => (
+  <FramedImage
+    media={page.header.image}
+    override={page.header.imageFraming}
+    framing={framing}
+    frames={matchFrames(headerFrames, page.header)}
+    secret={process.env.PAYLOAD_SECRET!}
+    sizes="100vw"
+    priority
+  />
+)
+```
+
+Other `next/image` props pass through; `boxClassName`/`boxStyle` style the box, `shaped={false}` leaves its size to you. Without `frames` it renders the cropped photo in its own shape.
+
+**Without Next.js:** an `<img>` with `object-fit: cover` and the CSS helpers. Plain React:
+
+```tsx
+const { resource, style } = frameImage({ framing, frames, media, override, secret })
+
+<div className="frame" style={{ ...style, ...frameAspectVariables(framing, frames) }}>
+  <style>{framePositionCss(framing, '.frame img') + frameAspectCss(framing, '.frame')}</style>
+  <img src={resource.url} width={resource.width} height={resource.height} alt={resource.alt ?? ''}
+    style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+</div>
+```
+
+The same in an Astro page (or any template language):
+
+```astro
+---
+import { frameImage } from '@wolffc/payload-image-framing/server'
+import { frameAspectCss, frameAspectVariables, framePositionCss } from '@wolffc/payload-image-framing/core'
+const { resource, style } = frameImage({ framing, frames, media, secret: import.meta.env.PAYLOAD_SECRET })
+const vars = Object.entries({ ...style, ...frameAspectVariables(framing, frames) }).map(([k, v]) => `${k}:${v}`).join(';')
+---
+<style set:html={framePositionCss(framing, '.frame img') + frameAspectCss(framing, '.frame')}></style>
+<div class="frame" style={vars}>
+  <img src={resource.url} width={resource.width} height={resource.height} alt={resource.alt ?? ''} />
+</div>
+```
+
+A `<picture>` with one `<source>` per breakpoint isn't needed: one cropped copy serves every breakpoint, and the breakpoints only move it. For responsive sizes, pass `resource.url` to your image service (`next/image`, Astro's `<Image>`, a CDN).
+
+**Headless frontends** that only see Payload's REST or GraphQL API can't call `frameImage`: it needs the secret. Set `expose: true` on the usage, and every read of the document returns the computed framing in a virtual field next to the upload field (`imageFramed` for an upload field `image`; `expose: { name }` for another): `{ url, width, height, alt, mimeType, style, focus }`, made on the server with the frames of the rule that matches the sibling fields. With `depth: 0` it costs one extra query per read.
+
+**Static pages (SSG/ISR):** the cropped URL contains the media version (`updatedAt`). After a media change, old URLs still work but show the old crop, so revalidate the pages that show the image when the media changes (e.g. `revalidatePath` or `revalidateTag` in an `afterChange` hook of the media collection).
 
 ### Breakpoints
 
@@ -252,6 +311,7 @@ Every option is optional except `collections`; the defaults are the behaviour wi
 | `name`              | `string`                             | `'imageFraming'`         | Name of the group next to the upload field that stores the usage's crop and focus area.                                                     |
 | `label`             | `string` or `{ [language]: string }` | 'Framing for this usage' | Title of the usage's drawer.                                                                                                                |
 | `admin.description` | `string` or `{ [language]: string }` | none                     | Shown under the usage's framing summary and in its drawer.                                                                                  |
+| `expose`            | `boolean` or `{ name?: string }`     | `false`                  | Adds a virtual field with the computed framing for headless frontends (see Rendering).                                                      |
 | `access`            | `{ create?, read?, update? }`        | the plugin's `access`    | Field access for the usage's group.                                                                                                         |
 
 The plugin checks its configuration at startup and throws with the reason when a collection in `collections` doesn't exist or isn't an upload collection; a framed collection already has a field named `framing`, `crop` or `focusArea` (the media fields can't be renamed, since `frameImage` reads them); a usage's group name is taken on its level; a usage path matches no upload field, or one with several `relationTo` collections, `hasMany`, or a collection without framing; a frame rule names an undefined breakpoint; or `sharp` or the secret is missing.

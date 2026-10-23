@@ -11,6 +11,7 @@ export {
   DEFAULT_PREVIEW_SHAPES,
   DEFAULT_USAGE_EDITOR_PATH,
   DEFAULT_USAGE_FIELD_NAME,
+  type ExposedFraming,
   type FramingAccess,
   diskCache,
   type FramingStorage,

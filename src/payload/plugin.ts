@@ -275,6 +275,8 @@ export const imageFramingPlugin = <K extends string = DefaultBreakpoint>({
         componentPath: disabled ? null : usageEditorPath,
         framedCollections: slugs,
         framing,
+        maxSize: (slug) => perCollection[slug]?.maxSize ?? defaults.maxSize,
+        secret: secret ?? '',
       },
     )
   }
