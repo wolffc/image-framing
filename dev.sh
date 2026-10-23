@@ -11,6 +11,7 @@
 #   ./dev.sh site           start the showcase page on http://localhost:5173/image-framing/
 #   ./dev.sh test-site      build the showcase page and run its Playwright tests
 #   ./dev.sh screenshots    regenerate docs/images from the dev app (starts it)
+#   ./dev.sh social-preview regenerate site/public/social-preview.png (GitHub's social preview)
 #   ./dev.sh typecheck      run tsc on src/ and dev/
 #   ./dev.sh build          build the package into dist/
 #   ./dev.sh shell          open a shell in the dev container
@@ -40,7 +41,7 @@ cmd="${1:-help}"
 [[ $# -gt 0 ]] && shift
 
 case "$cmd" in
-  help|-h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//' ;;
+  help|-h|--help) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//' ;;
   build-image) compose build dev ;;
   install) ensure_image; run pnpm install "$@" ;;
   start)
@@ -83,6 +84,11 @@ case "$cmd" in
     ensure_deps
     run pnpm site:build
     compose --profile e2e run --rm e2e node_modules/.bin/playwright test -c site/playwright.config.ts "$@"
+    ;;
+  social-preview)
+    ensure_deps
+    run pnpm site:build
+    compose --profile e2e run --rm e2e node_modules/.bin/playwright test -c site/playwright.social.config.ts "$@"
     ;;
   screenshots)
     "$0" test-e2e -c playwright.screenshots.config.ts "$@"

@@ -70,7 +70,7 @@ CI (`.github/workflows/ci.yml`) runs on every pull request: lint, format check, 
 
 `site/` is the page at <https://wolffc.github.io/image-framing/>. `./dev.sh site` serves it on <http://localhost:5173/image-framing/> with hot reload. Its widgets import `@wolffc80/payload-image-framing/core` from `src/core/`, so they always show the current algorithm. The sample photos in `site/public/photos/` are drawings made for the project (CC0).
 
-`./dev.sh screenshots` regenerates `docs/images/media-editor.png`, `usage-drawer.png` and `focus-editing.gif` from the dev app (`dev/screenshots.shot.ts`), with the sailboat drawing. Run it after a change to the admin UI.
+`./dev.sh screenshots` regenerates `docs/images/media-editor.png`, `usage-drawer.png` and `focus-editing.gif` from the dev app (`dev/screenshots.shot.ts`), with the sailboat drawing. Run it after a change to the admin UI. `./dev.sh social-preview` regenerates `site/public/social-preview.png` from `site/social.html`: the page's link preview, and the image to upload as the repository's social preview (Settings → General → Social preview).
 
 ## Pull requests
 
