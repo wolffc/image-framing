@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1600" viewBox="0 0 2400 1600"><defs><linearGradient id="sky3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4ea8de"/><stop offset="1" stop-color="#cdeefd"/></linearGradient></defs><rect width="2400" height="1600" fill="url(#sky3)"/>
+<ellipse cx="1500" cy="260" rx="120" ry="60" fill="#ffffff" opacity="0.75"/><ellipse cx="1620" cy="240" rx="100" ry="50" fill="#ffffff" opacity="0.75"/><ellipse cx="1900" cy="420" rx="140" ry="70" fill="#ffffff" opacity="0.75"/><ellipse cx="2050" cy="400" rx="110" ry="55" fill="#ffffff" opacity="0.75"/><ellipse cx="300" cy="700" rx="90" ry="45" fill="#ffffff" opacity="0.75"/><ellipse cx="1100" cy="620" rx="80" ry="40" fill="#ffffff" opacity="0.75"/>
+<path d="M0 1180 Q 500 980 1000 1150 T 2400 1080 L 2400 1600 L 0 1600 Z" fill="#6a994e"/>
+<path d="M0 1320 Q 700 1150 1400 1330 T 2400 1280 L 2400 1600 L 0 1600 Z" fill="#386641"/>
+<g transform="translate(560 300)"><path d="M0 120 C 0 -40 220 -40 220 120 C 220 200 150 250 135 290 L 85 290 C 70 250 0 200 0 120 Z" fill="#e63946"/>
+<path d="M75 0 C 60 80 70 220 95 290 L 125 290 C 150 220 160 80 145 0 Z" fill="#f4a261"/>
+<line x1="88" y1="290" x2="92" y2="330" stroke="#3d3a36" stroke-width="4"/><line x1="132" y1="290" x2="128" y2="330" stroke="#3d3a36" stroke-width="4"/>
+<rect x="88" y="330" width="44" height="34" rx="4" fill="#7f5539"/></g></svg>

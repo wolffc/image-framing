@@ -34,8 +34,17 @@ const eslintConfig = [
     },
   },
   {
+    // The showcase page is a Vite app: plain <img> and no Next.js.
+    files: ['site/**'],
+    rules: {
+      '@next/next/no-img-element': 'off',
+      '@next/next/no-html-link-for-pages': 'off',
+    },
+  },
+  {
     ignores: [
       'dist/',
+      'site/dist/',
       'coverage/',
       'dev/.next/',
       'dev/next-env.d.ts',
