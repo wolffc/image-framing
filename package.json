@@ -1,6 +1,6 @@
 {
   "name": "@wolffc80/payload-image-framing",
-  "version": "0.0.0",
+  "version": "0.1.0-beta.0",
   "description": "Non-destructive crop and focus areas for Payload CMS uploads, with per-usage overrides and cover areas",
   "keywords": [
     "payload",
