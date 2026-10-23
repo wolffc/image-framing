@@ -88,10 +88,14 @@ export interface Config {
   db: {
     defaultIDType: number;
   };
-  fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
-  locale: null;
+  fallbackLocale: ('false' | 'none' | 'null') | false | null | ('en' | 'de') | ('en' | 'de')[];
+  globals: {
+    header: Header;
+  };
+  globalsSelect: {
+    header: HeaderSelect<false> | HeaderSelect<true>;
+  };
+  locale: 'en' | 'de';
   widgets: {
     collections: CollectionsWidget;
   };
@@ -228,6 +232,44 @@ export interface Page {
       };
     };
   };
+  social?: {
+    image?: (number | null) | Media;
+    imageFraming?: {
+      crop?: {
+        x?: number | null;
+        y?: number | null;
+        width?: number | null;
+        height?: number | null;
+      };
+      focusArea?: {
+        x?: number | null;
+        y?: number | null;
+        width?: number | null;
+        height?: number | null;
+      };
+    };
+  };
+  gallery?:
+    | {
+        caption?: string | null;
+        image?: (number | null) | Media;
+        imageFraming?: {
+          crop?: {
+            x?: number | null;
+            y?: number | null;
+            width?: number | null;
+            height?: number | null;
+          };
+          focusArea?: {
+            x?: number | null;
+            y?: number | null;
+            width?: number | null;
+            height?: number | null;
+          };
+        };
+        id?: string | null;
+      }[]
+    | null;
   layout?:
     | {
         heading?: string | null;
@@ -456,6 +498,58 @@ export interface PagesSelect<T extends boolean = true> {
                   };
             };
       };
+  social?:
+    | T
+    | {
+        image?: T;
+        imageFraming?:
+          | T
+          | {
+              crop?:
+                | T
+                | {
+                    x?: T;
+                    y?: T;
+                    width?: T;
+                    height?: T;
+                  };
+              focusArea?:
+                | T
+                | {
+                    x?: T;
+                    y?: T;
+                    width?: T;
+                    height?: T;
+                  };
+            };
+      };
+  gallery?:
+    | T
+    | {
+        caption?: T;
+        image?: T;
+        imageFraming?:
+          | T
+          | {
+              crop?:
+                | T
+                | {
+                    x?: T;
+                    y?: T;
+                    width?: T;
+                    height?: T;
+                  };
+              focusArea?:
+                | T
+                | {
+                    x?: T;
+                    y?: T;
+                    width?: T;
+                    height?: T;
+                  };
+            };
+        id?: T;
+      };
   layout?:
     | T
     | {
@@ -530,6 +624,60 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "header".
+ */
+export interface Header {
+  id: number;
+  logo?: (number | null) | Media;
+  imageFraming?: {
+    crop?: {
+      x?: number | null;
+      y?: number | null;
+      width?: number | null;
+      height?: number | null;
+    };
+    focusArea?: {
+      x?: number | null;
+      y?: number | null;
+      width?: number | null;
+      height?: number | null;
+    };
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "header_select".
+ */
+export interface HeaderSelect<T extends boolean = true> {
+  logo?: T;
+  imageFraming?:
+    | T
+    | {
+        crop?:
+          | T
+          | {
+              x?: T;
+              y?: T;
+              width?: T;
+              height?: T;
+            };
+        focusArea?:
+          | T
+          | {
+              x?: T;
+              y?: T;
+              width?: T;
+              height?: T;
+            };
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

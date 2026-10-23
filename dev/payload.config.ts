@@ -1,13 +1,12 @@
-import { sqliteAdapter } from '@payloadcms/db-sqlite'
 import { de } from '@payloadcms/translations/languages/de'
 import { en } from '@payloadcms/translations/languages/en'
 import { imageFramingPlugin } from '@wolffc/payload-image-framing'
-import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
 
+import { database } from './db.js'
 import { cardFrames, framing, heroFrames } from './framing.js'
 import { devUser } from './helpers/credentials.js'
 import { seed } from './seed.js'
@@ -15,8 +14,9 @@ import { seed } from './seed.js'
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const secret = process.env.PAYLOAD_SECRET || 'dev-secret-change-me'
 
-// SQLite does not create the directory of its database file.
-fs.mkdirSync(path.resolve(dirname, '.data'), { recursive: true })
+// The integration tests point these at a temporary directory.
+const dataDir = process.env.DATA_DIR || path.resolve(dirname, '.data')
+const mediaDir = process.env.MEDIA_DIR || path.resolve(dirname, 'media')
 
 export default buildConfig({
   admin: {
@@ -31,9 +31,11 @@ export default buildConfig({
     { slug: 'users', auth: true, fields: [] },
     {
       slug: 'media',
+      // Public, as on a site: the frontend and the crop route serve it to anyone.
+      access: { read: () => true },
       fields: [{ name: 'alt', type: 'text' }],
       upload: {
-        staticDir: path.resolve(dirname, 'media'),
+        staticDir: mediaDir,
         mimeTypes: ['image/*'],
         imageSizes: [
           { name: 'thumbnail', width: 400 },
@@ -64,6 +66,20 @@ export default buildConfig({
             { name: 'image', type: 'upload', relationTo: 'media' },
           ],
         },
+        // An image per locale, with its own framing per locale.
+        {
+          name: 'social',
+          type: 'group',
+          fields: [{ name: 'image', type: 'upload', relationTo: 'media', localized: true }],
+        },
+        {
+          name: 'gallery',
+          type: 'array',
+          fields: [
+            { name: 'caption', type: 'text' },
+            { name: 'image', type: 'upload', relationTo: 'media' },
+          ],
+        },
         {
           name: 'layout',
           type: 'blocks',
@@ -80,11 +96,11 @@ export default buildConfig({
       ],
     },
   ],
+  globals: [{ slug: 'header', fields: [{ name: 'logo', type: 'upload', relationTo: 'media' }] }],
   // English and German, the languages the plugin ships: switch in the account settings.
   i18n: { supportedLanguages: { de, en } },
-  db: sqliteAdapter({
-    client: { url: process.env.DATABASE_URI || `file:${path.resolve(dirname, '.data/dev.db')}` },
-  }),
+  localization: { defaultLocale: 'en', locales: ['en', 'de'] },
+  db: database(dataDir),
   onInit: seed,
   plugins: [
     imageFramingPlugin({
@@ -93,6 +109,9 @@ export default buildConfig({
       usages: {
         'pages.hero.image': { frames: heroFrames },
         'block:card.image': { frames: cardFrames },
+        'pages.gallery.image': { frames: cardFrames },
+        'pages.social.image': { frames: [{ when: {}, frames: { base: { aspect: 1200 / 630 } } }] },
+        'header.logo': {},
       },
     }),
   ],

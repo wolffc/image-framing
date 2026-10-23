@@ -1,0 +1,31 @@
+name: Setup
+description: Node, pnpm and the dependencies, optionally with another Payload version.
+inputs:
+  node:
+    description: Node.js version
+    default: '24'
+  payload:
+    description: "Payload version to install instead of the locked one ('' keeps it)"
+    default: ''
+  next:
+    description: Next.js version to go with it
+    default: ''
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node }}
+        cache: pnpm
+    - run: pnpm install --frozen-lockfile
+      shell: bash
+    - name: Install Payload ${{ inputs.payload }}
+      if: inputs.payload != ''
+      shell: bash
+      run: >-
+        pnpm add -D payload@${{ inputs.payload }} @payloadcms/ui@${{ inputs.payload }}
+        @payloadcms/next@${{ inputs.payload }} @payloadcms/db-sqlite@${{ inputs.payload }}
+        @payloadcms/db-postgres@${{ inputs.payload }} @payloadcms/db-mongodb@${{ inputs.payload }}
+        @payloadcms/storage-s3@${{ inputs.payload }} @payloadcms/translations@${{ inputs.payload }}
+        ${{ inputs.next != '' && format('next@{0}', inputs.next) || '' }}

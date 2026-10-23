@@ -5,7 +5,9 @@
 #   ./dev.sh install        install dependencies (pnpm install)
 #   ./dev.sh start          start the dev app on http://localhost:3000/admin
 #   ./dev.sh test           run the unit and integration tests
+#   ./dev.sh test-int [db]  run the integration tests: sqlite (default), postgres or mongodb
 #   ./dev.sh test-s3        run the storage tests against an S3 server (adobe/s3mock)
+#   ./dev.sh test-e2e       run the Playwright tests against the dev app (starts it)
 #   ./dev.sh typecheck      run tsc on src/ and dev/
 #   ./dev.sh build          build the package into dist/
 #   ./dev.sh shell          open a shell in the dev container
@@ -35,7 +37,7 @@ cmd="${1:-help}"
 [[ $# -gt 0 ]] && shift
 
 case "$cmd" in
-  help|-h|--help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//' ;;
+  help|-h|--help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' ;;
   build-image) compose build dev ;;
   install) ensure_image; run pnpm install "$@" ;;
   start)
@@ -43,8 +45,32 @@ case "$cmd" in
     echo "Admin: http://localhost:${PORT:-3000}/admin  (dev@payloadcms.com / test)"
     compose up dev "$@"
     ;;
-  stop) compose --profile s3 down ;;
+  stop) compose --profile s3 --profile db --profile e2e down ;;
   test) ensure_deps; run pnpm test "$@" ;;
+  test-int)
+    ensure_deps
+    db="${1:-sqlite}"
+    [[ $# -gt 0 ]] && shift
+    case "$db" in
+      sqlite) uri="" ;;
+      postgres) uri="postgres://postgres:postgres@postgres:5432/image_framing" ;;
+      mongodb) uri="mongodb://mongodb:27017/image_framing" ;;
+      *) echo "Unknown database: $db (sqlite, postgres, mongodb)" >&2; exit 1 ;;
+    esac
+    if [[ -n "$uri" ]]; then
+      compose --profile db up -d --force-recreate "$db"
+      host="${db}"; port=$([[ "$db" == postgres ]] && echo 5432 || echo 27017)
+      run node -e "const net = require('node:net'); const until = Date.now() + 90000; const tryOnce = () => { const s = net.connect($port, '$host', () => { s.end(); setTimeout(() => process.exit(0), 2000) }); s.on('error', () => Date.now() < until ? setTimeout(tryOnce, 1000) : process.exit(1)) }; tryOnce()"
+    fi
+    compose run --rm -e DATABASE_URI="$uri" dev pnpm test:int "$@"
+    ;;
+  test-e2e)
+    ensure_deps
+    compose up -d dev
+    echo "Waiting for the dev app…"
+    run node -e "const until = Date.now() + 300000; (async () => { while (Date.now() < until) { try { const r = await fetch('http://framing-dev:3000/admin', { signal: AbortSignal.timeout(120000) }); if (r.ok) return } catch {} await new Promise((r) => setTimeout(r, 2000)) } process.exit(1) })()"
+    compose --profile e2e run --rm e2e node_modules/.bin/playwright test "$@"
+    ;;
   test-s3)
     ensure_deps
     compose --profile s3 up -d s3

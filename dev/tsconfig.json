@@ -25,11 +25,5 @@
     "../src/**/*.ts",
     "../src/**/*.tsx"
   ],
-  "exclude": [
-    "node_modules",
-    ".next",
-    "imageFraming.int.spec.ts",
-    "imageFraming.e2e.spec.ts",
-    "helpers/seedImageFraming.ts"
-  ]
+  "exclude": ["node_modules", ".next"]
 }
