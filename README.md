@@ -58,7 +58,10 @@ Everything runs in Docker; the host needs only Docker with the compose plugin.
 
 ```bash
 ./dev.sh start        # dev app on http://localhost:3000 (admin: /admin, logs in automatically)
-./dev.sh test         # unit tests
+./dev.sh test         # unit tests (no services)
+./dev.sh test-int     # integration tests on SQLite; `./dev.sh test-int postgres` or `mongodb` starts that database
+./dev.sh test-e2e     # Playwright against the dev app (starts it)
+./dev.sh test-s3      # cloud storage tests against an S3-compatible server
 ./dev.sh typecheck    # tsc on src/, test/ and dev/
 ./dev.sh build        # dist/ (SWC + tsc declarations)
 ./dev.sh pnpm lint    # ESLint; `pnpm format` / `pnpm format:check` for Prettier
@@ -69,9 +72,18 @@ Everything runs in Docker; the host needs only Docker with the compose plugin.
 
 `PORT=3100 ./dev.sh start` uses another host port. After changing the plugin's admin components or paths, run `./dev.sh pnpm generate:importmap`; after changing the dev collections, `./dev.sh pnpm generate:types`.
 
-CI (`.github/workflows/ci.yml`) runs lint, format check, typecheck, unit tests and the build on every pull request, repeats typecheck, tests and build on the lowest supported Payload, and runs the pack test on both. Releases must be packed with pnpm: only pnpm applies `publishConfig.exports`, which points the entry points at `dist/`.
+Tests:
 
-The dev app (`dev/payload.config.ts`) has a `media` collection with three image sizes and a `pages` collection with a framed hero image and a `card` block, framed for three breakpoints (`dev/framing.ts`). The frontend at `/` renders the pages with `frameImage()`, a plain `<img>` and `framePositionCss()`.
+| Command          | What                                                                                                                                                                                                     | Where                                     |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `pnpm test`      | Unit tests                                                                                                                                                                                               | `test/unit/`                              |
+| `pnpm test:int`  | Integration tests against a real Payload: the dev app's config (`dev/framing.int.spec.ts`) on the database `DATABASE_URI` names (SQLite in a temp folder by default), plus focused configs (`test/int/`) | `dev/`, `test/int/`                       |
+| `pnpm test:e2e`  | Playwright against the running dev app (`E2E_BASE_URL`, default `http://localhost:3000`)                                                                                                                 | `dev/framing.e2e.spec.ts`                 |
+| `pnpm test:pack` | Pack, install into a scratch project, build a Payload + Next app with it                                                                                                                                 | `scripts/pack-smoke.sh`, `test/consumer/` |
+
+CI (`.github/workflows/ci.yml`) runs on every pull request: lint, format check, typecheck, unit and SQLite integration tests and the build; unit tests on Node 20 and 22 too; the integration tests on SQLite, Postgres and MongoDB, each on the latest and the lowest supported Payload; the e2e tests; the cloud storage tests; and the pack test on the latest and lowest Payload. A weekly workflow runs the tests against Payload's latest release. Releases must be packed with pnpm: only pnpm applies `publishConfig.exports`, which points the entry points at `dist/`.
+
+The dev app (`dev/payload.config.ts`) has a public `media` collection with three image sizes (one of a fixed shape), a `pages` collection with framed usages in a group (`hero`), an array (`gallery`), a block (`card`) and a localized upload field (`social`), and a `header` global with a framed `logo`; framed for three breakpoints (`dev/framing.ts`), in English and German. `DATABASE_URI` picks the database: SQLite (default, `dev/.data/`), `postgres://…` or `mongodb://…`. The frontend at `/` renders the pages with `frameImage()`, a plain `<img>` and `framePositionCss()`.
 
 ## Use
 
@@ -267,6 +279,7 @@ Unnamed tabs, rows and collapsibles don't count, since they don't nest the data.
 - **Polymorphic and `hasMany` upload fields** can't be usages; the plugin names the field at startup. The media's own crop still applies to them.
 - **SVGs** aren't framed: they keep no crop URL, get no cropped copy, keep the sizes Payload made, and the editors say so. Other non-image files are left alone too.
 - **Animated GIFs and WebPs** stay animated: every frame is cropped the same way.
+- **Localized usages need Payload 3.80 or later.** Before 3.80, Payload shares the values of a group nested in a localized group between locales, and a usage's group nests its crop and focus area.
 - **One crop per usage**: breakpoints only choose the visible part of it; per-breakpoint crops (art direction) aren't supported.
 - **Cropped copies are capped** at 4000 px on the long side (`maxSize`), since image components resize them anyway. Changing `maxSize` doesn't change the URLs: purge a CDN in front of the crop route.
 - **Quick saves** of one document rebuild its sizes in save order within one server process. With several processes saving the same image at the same moment, the last write wins.
@@ -281,4 +294,4 @@ The admin editors use only exported `@payloadcms/ui` hooks and components: `useF
 - the generated sizes' `filename` in `doc.sizes`, which it overwrites;
 - the REST route `<api>/<collection>/<id>?depth=0`, which the usage drawer reads the media document from.
 
-Check these after a Payload upgrade. `test/int/` covers the crop route and the size rebuild; the full integration test from weflyhome.com (`dev/imageFraming.int.spec.ts`) is being ported to the dev app.
+Check these after a Payload upgrade; the integration tests cover them on every database adapter, and a weekly CI run tries Payload's latest release.

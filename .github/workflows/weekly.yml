@@ -1,0 +1,48 @@
+name: Weekly against the latest Payload
+
+# The plugin relies on some Payload internals (see the README): catch a
+# breaking Payload release early, before a project upgrades into it.
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  latest:
+    name: Latest Payload (${{ matrix.db }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [sqlite, postgres, mongodb]
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: image_framing
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+      mongodb:
+        image: mongo:8
+        ports:
+          - 27017:27017
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          payload: latest
+      - run: pnpm exec tsc --noEmit -p tsconfig.json
+      - run: pnpm test
+      - run: pnpm test:int
+        env:
+          DATABASE_URI: >-
+            ${{ matrix.db == 'postgres' && 'postgres://postgres:postgres@localhost:5432/image_framing'
+            || matrix.db == 'mongodb' && 'mongodb://localhost:27017/image_framing' || '' }}
+      - name: Pack and build an app with it
+        if: matrix.db == 'sqlite'
+        run: PAYLOAD_VERSION=latest NEXT_VERSION=latest pnpm test:pack

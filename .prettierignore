@@ -4,6 +4,3 @@ pnpm-lock.yaml
 dev/.next/
 dev/payload-types.ts
 dev/app/(payload)/
-dev/imageFraming.int.spec.ts
-dev/imageFraming.e2e.spec.ts
-dev/helpers/seedImageFraming.ts

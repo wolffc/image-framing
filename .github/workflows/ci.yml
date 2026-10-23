@@ -24,38 +24,96 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm typecheck
       - run: pnpm test
+      # SQLite, no services.
+      - run: pnpm test:int
       - run: pnpm build
 
-  lowest-payload:
-    name: Typecheck and test on the lowest supported Payload
+  unit:
+    name: Unit tests (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          node: ${{ matrix.node }}
+      - run: pnpm test
+
+  integration:
+    name: Integration (${{ matrix.db }}, ${{ matrix.payload }} Payload)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [sqlite, postgres, mongodb]
+        payload: [latest, lowest]
+        exclude:
+          # SQLite on the latest Payload runs in the check job.
+          - db: sqlite
+            payload: latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: image_framing
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+      mongodb:
+        image: mongo:8
+        ports:
+          - 27017:27017
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          payload: ${{ matrix.payload == 'lowest' && env.LOWEST_PAYLOAD || '' }}
+          next: ${{ matrix.payload == 'lowest' && env.LOWEST_NEXT || '' }}
+      - name: Typecheck the package
+        if: matrix.payload == 'lowest'
+        run: pnpm exec tsc --noEmit -p tsconfig.json
+      - name: Unit tests
+        if: matrix.payload == 'lowest'
+        run: pnpm test
+      - name: Integration tests
+        run: pnpm test:int
+        env:
+          DATABASE_URI: >-
+            ${{ matrix.db == 'postgres' && 'postgres://postgres:postgres@localhost:5432/image_framing'
+            || matrix.db == 'mongodb' && 'mongodb://localhost:27017/image_framing' || '' }}
+
+  e2e:
+    name: End to end (Playwright)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Start the dev app
+        run: |
+          pnpm dev > dev-server.log 2>&1 &
+          timeout 300 bash -c 'until curl -sf -o /dev/null http://localhost:3000/admin; do sleep 2; done'
+      - run: pnpm test:e2e
+      - name: Dev server log
+        if: failure()
+        run: tail -100 dev-server.log
+      - uses: actions/upload-artifact@v4
+        if: failure()
         with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Install Payload ${{ env.LOWEST_PAYLOAD }}
-        run: >-
-          pnpm add -D payload@$LOWEST_PAYLOAD @payloadcms/ui@$LOWEST_PAYLOAD
-          @payloadcms/next@$LOWEST_PAYLOAD @payloadcms/db-sqlite@$LOWEST_PAYLOAD
-          @payloadcms/storage-s3@$LOWEST_PAYLOAD next@$LOWEST_NEXT
-      # The package and its tests; the dev app's generated files follow the latest Payload.
-      - run: pnpm exec tsc --noEmit -p tsconfig.json
-      - run: pnpm test
-      - run: pnpm build
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
 
   storage:
     name: Cloud storage (S3)
@@ -69,15 +127,10 @@ jobs:
       S3_ENDPOINT: http://localhost:9090
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
       - name: Wait for the S3 server
         run: timeout 90 bash -c 'until curl -s -o /dev/null $S3_ENDPOINT; do sleep 1; done'
-      - run: pnpm exec vitest run test/int/s3.int.spec.ts
+      - run: pnpm exec vitest run --project int test/int/s3.int.spec.ts
 
   pack:
     name: Pack and install (${{ matrix.name }})
@@ -93,12 +146,9 @@ jobs:
             lowest: true
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup
         with:
-          node-version: ${{ matrix.node }}
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+          node: ${{ matrix.node }}
       - name: Pack, install and import every entry point
         run: |
           if [ "${{ matrix.lowest }}" = "true" ]; then

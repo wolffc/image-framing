@@ -41,10 +41,6 @@ const eslintConfig = [
       'dev/next-env.d.ts',
       'dev/payload-types.ts',
       'dev/app/(payload)/',
-      // Still the weflyhome.com versions; rewritten against the dev app in #10.
-      'dev/imageFraming.int.spec.ts',
-      'dev/imageFraming.e2e.spec.ts',
-      'dev/helpers/seedImageFraming.ts',
     ],
   },
 ]

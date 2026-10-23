@@ -25,9 +25,12 @@ type Usage = {
 
 /** A media doc rendered in the frames its rules pick, with a plain <img>. */
 const Framed = ({
+  name,
   rules,
   usage,
 }: {
+  /** `data-usage`, for the e2e tests. */
+  name: string
   rules: FrameRule<BreakpointName<typeof framing>>[]
   usage: Usage
 }) => {
@@ -50,7 +53,7 @@ const Framed = ({
       : [],
   )
   return (
-    <div className="frame" style={{ ...style, ...aspect } as CSSProperties}>
+    <div className="frame" data-usage={name} style={{ ...style, ...aspect } as CSSProperties}>
       {/* eslint-disable-next-line @next/next/no-img-element -- plain <img> on purpose */}
       <img alt={resource.alt ?? ''} className="framed" src={resource.url} />
     </div>
@@ -80,10 +83,10 @@ export default async function Home() {
       </p>
       {docs.length === 0 && <p>No pages yet. Upload an image to Media and create a page.</p>}
       {docs.map((page) => (
-        <section key={page.id} style={{ marginBottom: 48 }}>
+        <section data-page={page.id} key={page.id} style={{ marginBottom: 48 }}>
           <h2>{page.title}</h2>
           <div style={{ position: 'relative' }}>
-            <Framed rules={heroFrames} usage={page.hero as Usage} />
+            <Framed name="hero" rules={heroFrames} usage={page.hero as Usage} />
             {page.hero?.layout === 'fullBleed' && page.hero.heading && (
               <div className="cover">
                 <h3 style={{ margin: 0 }}>{page.hero.heading}</h3>
@@ -93,7 +96,7 @@ export default async function Home() {
           <div className="cards">
             {page.layout?.map((block) => (
               <article key={block.id}>
-                <Framed rules={cardFrames} usage={block as Usage} />
+                <Framed name="card" rules={cardFrames} usage={block as Usage} />
                 <h3>{block.heading}</h3>
               </article>
             ))}

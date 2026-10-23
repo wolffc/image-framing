@@ -48,3 +48,7 @@ package uses [Semantic Versioning](https://semver.org/).
   localized parents); SVGs aren't framed; animated GIFs and WebPs stay
   animated; cropped copies are capped at `maxSize` (4000 px); quick saves
   write their sizes in save order; blocks in `blockReferences` are found.
+- Tests without the site: integration tests against the dev app on SQLite,
+  Postgres and MongoDB (latest and lowest Payload), Playwright e2e tests,
+  a weekly run against Payload's latest release. Localized usages need
+  Payload 3.80+ (a Payload bug before).

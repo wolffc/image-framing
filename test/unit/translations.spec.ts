@@ -2,7 +2,7 @@
 import type { Config } from 'payload'
 import { describe, expect, it } from 'vitest'
 
-import { imageFramingPlugin, translations } from '../../src/index.js'
+import { imageFramingPlugin, translations } from '@wolffc/payload-image-framing'
 import { fieldLabel, translate, withTranslations } from '../../src/payload/i18n.js'
 
 /**
