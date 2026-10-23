@@ -1,0 +1,39 @@
+name: Release
+
+# On every push to main: while changesets wait in .changeset/, open or update
+# the "Version packages" pull request; once that pull request is merged (no
+# changesets left, a version not on npm yet), publish it. npm authenticates
+# this workflow through trusted publishing (configured for release.yml on
+# npmjs.com), so there is no npm token, and every version gets provenance.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write # the version commit, git tags, GitHub releases
+  pull-requests: write # the "Version packages" pull request
+  id-token: write # npm trusted publishing (OIDC) and provenance
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Version or publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      # Trusted publishing needs npm 11.5.1 or later.
+      - run: npm install --global npm@11
+      - run: npm --version
+      - run: pnpm test
+      - uses: changesets/action@v2
+        with:
+          version-script: pnpm changeset version
+          publish-script: pnpm release
+          commit-message: Version packages
+          pr-title: Version packages
