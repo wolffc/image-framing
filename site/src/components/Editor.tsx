@@ -22,8 +22,9 @@ const drag = (rect: Rect, handle: Handle, dx: number, dy: number, within: Rect):
   const bottom = y + height
   if (handle.includes('w')) x = Math.min(Math.max(within.x, x + dx), right - MIN_SIZE)
   if (handle.includes('n')) y = Math.min(Math.max(within.y, y + dy), bottom - MIN_SIZE)
-  width = handle.includes('w') ? right - x : width + dx
-  height = handle.includes('n') ? bottom - y : height + dy
+  // The opposite edge stays put: an edge that hits `within` stops there.
+  width = handle.includes('w') ? right - x : Math.min(width + dx, within.x + within.width - x)
+  height = handle.includes('n') ? bottom - y : Math.min(height + dy, within.y + within.height - y)
   return normalizeRect({ x, y, width, height }, within)
 }
 

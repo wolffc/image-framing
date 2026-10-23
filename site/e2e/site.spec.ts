@@ -114,3 +114,24 @@ test('the page fits the screen and its images load', async ({ page }) => {
       .toBe(true)
   }
 })
+
+test('a corner dragged past the photo stops at its edge', async ({ page }) => {
+  const editor = page.getByTestId('hero-demo').locator('.editor')
+  const crop = page.getByTestId('hero-demo').getByTestId('crop-rect')
+  await editor.scrollIntoViewIfNeeded()
+  const before = (await crop.boundingBox())!
+  const handle = crop.locator('.handle-se')
+  const at = (await handle.boundingBox())!
+  await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(at.x + 120, at.y + 120, { steps: 6 })
+  await page.mouse.up()
+
+  const after = (await crop.boundingBox())!
+  const area = (await editor.boundingBox())!
+  // The top left corner stays; the bottom right one reaches the photo's corner.
+  expect(after.x).toBeCloseTo(before.x, 0)
+  expect(after.y).toBeCloseTo(before.y, 0)
+  expect(after.x + after.width).toBeCloseTo(area.x + area.width, 0)
+  expect(after.y + after.height).toBeCloseTo(area.y + area.height, 0)
+})
