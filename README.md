@@ -24,7 +24,7 @@ Work in progress: being extracted from weflyhome.com into a standalone package. 
 | `test/unit/`         | Vitest unit tests                                                                                                                                                                           |                                              |
 | `test/int/`          | Vitest integration tests against a Payload instance (SQLite, no services)                                                                                                                   |                                              |
 | `test/consumer/`     | A fresh Payload + Next app the pack test builds against the packed package                                                                                                                  | the package by its name                      |
-| `examples/`          | Example setups (to come)                                                                                                                                                                    |                                              |
+| `examples/`          | Example apps and snippets (`pnpm build:examples` builds the apps)                                                                                                                           |                                              |
 | `scripts/`           | `pack-smoke.sh`: packs the package and installs it into a scratch project                                                                                                                   |                                              |
 
 `test/unit/imageFramingBoundary.spec.ts` checks the import rules above, and that every admin module is marked `'use client'`.
@@ -332,6 +332,10 @@ A key in `usages` names an upload field by its data path:
 | `block:gallery.items.image` | in the `items` array of the `gallery` block                                                                                           |
 
 Unnamed tabs, rows and collapsibles don't count, since they don't nest the data. The usage's group is stored next to the upload field and has the same localization: a localized upload field gets a localized group, unless a parent is already localized.
+
+## Examples
+
+[examples/](examples) has runnable apps and focused snippets: [quick start](examples/quick-start), [per-usage overrides with frame rules and cover areas](examples/usage-overrides), [custom breakpoints](examples/breakpoints), [adding the plugin to an existing project](examples/existing-project), [cloud storage](examples/cloud-storage), [without Next.js](examples/without-next), [several collections and a custom API route](examples/multiple-collections) and [headless frontends](examples/headless).
 
 ## Limitations
 

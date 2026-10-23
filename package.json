@@ -66,6 +66,7 @@
   ],
   "scripts": {
     "build": "pnpm clean && pnpm build:types && pnpm build:swc",
+    "build:examples": "bash scripts/build-examples.sh",
     "build:swc": "swc ./src -d ./dist --config-file .swcrc --strip-leading-paths",
     "build:types": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist *.tsbuildinfo",
@@ -84,7 +85,7 @@
     "test:int": "vitest run --project int",
     "test:pack": "bash scripts/pack-smoke.sh",
     "test:watch": "vitest --project unit",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p dev/tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p dev/tsconfig.json && tsc --noEmit -p examples/tsconfig.snippets.json"
   },
   "peerDependencies": {
     "@aws-sdk/client-s3": "^3.614.0",

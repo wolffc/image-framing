@@ -1,0 +1,15 @@
+{
+  "//": "Typechecks the snippet examples (`pnpm typecheck`); the runnable apps are built by `pnpm build:examples`.",
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "jsx": "react-jsx"
+  },
+  "files": [
+    "without-next/react.tsx",
+    "multiple-collections/payload.config.ts",
+    "headless/client.ts"
+  ]
+}
