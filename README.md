@@ -132,6 +132,7 @@ const { resource, style } = frameImage({
 **Next.js:** `<FramedImage>` from `./next` wraps `next/image` in a box of the frame's shape, positioned per breakpoint, with one small stylesheet per framing config (no Tailwind needed):
 
 ```tsx
+import { matchFrames } from '@wolffc/payload-image-framing/core'
 import { FramedImage } from '@wolffc/payload-image-framing/next'
 
 ;<FramedImage
