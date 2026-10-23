@@ -14,8 +14,8 @@ import {
   type Label,
   labelText,
   resolveFrames,
-} from '../../src/core/index.js'
-import { frameImage } from '../../src/exports/server.js'
+} from '@wolffc/payload-image-framing/core'
+import { frameImage } from '@wolffc/payload-image-framing/server'
 import { usagePreviewFrames } from '../../src/payload/admin/previewFrames.js'
 
 /**
