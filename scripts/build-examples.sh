@@ -35,7 +35,7 @@ for name in "${examples[@]}"; do
     node -e "
       const fs = require('fs')
       const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
-      pkg.dependencies['@wolffc/payload-image-framing'] = 'file:$tarball'
+      pkg.dependencies['@wolffc80/payload-image-framing'] = 'file:$tarball'
       pkg.packageManager = require('$root/package.json').packageManager
       pkg.pnpm = { onlyBuiltDependencies: require('$root/package.json').pnpm.onlyBuiltDependencies }
       fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2))

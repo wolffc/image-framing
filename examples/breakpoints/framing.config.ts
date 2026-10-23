@@ -2,7 +2,7 @@ import {
   type BreakpointName,
   defineFraming,
   type FrameRule,
-} from '@wolffc/payload-image-framing/core'
+} from '@wolffc80/payload-image-framing/core'
 
 /** Phone, tablet and desktop: one definition for the admin previews and the page. */
 export const framing = defineFraming({

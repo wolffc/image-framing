@@ -4,9 +4,9 @@ import {
   frameAspectCss,
   frameAspectVariables,
   framePositionCss,
-} from '@wolffc/payload-image-framing/core'
-import { FramedImage } from '@wolffc/payload-image-framing/next'
-import { frameImage } from '@wolffc/payload-image-framing/server'
+} from '@wolffc80/payload-image-framing/core'
+import { FramedImage } from '@wolffc80/payload-image-framing/next'
+import { frameImage } from '@wolffc80/payload-image-framing/server'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'

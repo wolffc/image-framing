@@ -2,7 +2,7 @@ import {
   type BreakpointName,
   defineFraming,
   type FrameRule,
-} from '@wolffc/payload-image-framing/core'
+} from '@wolffc80/payload-image-framing/core'
 
 /**
  * The breakpoints and frames the dev app shows images in. Shared by the plugin

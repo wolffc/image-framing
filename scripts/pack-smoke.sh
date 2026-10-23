@@ -54,12 +54,12 @@ pnpm add --silent "$tarball" "payload@$PAYLOAD_VERSION" "@payloadcms/ui@$PAYLOAD
 # Every entry point exports these names, at runtime and in its types.
 cat > expected.json <<'JSON'
 {
-  "@wolffc/payload-image-framing": ["imageFramingPlugin", "localDiskStorage", "DEFAULT_EDITOR_PATH"],
-  "@wolffc/payload-image-framing/core": ["resolveFraming", "visibleRect", "objectPosition", "matchFrames"],
-  "@wolffc/payload-image-framing/server": ["cropToken", "readCropToken", "frameImage", "cropUrl"],
-  "@wolffc/payload-image-framing/client": ["FramingEditor", "UsageFramingField", "FramingCanvas", "PreviewStrip"],
-  "@wolffc/payload-image-framing/next": ["frameImage", "FramedImage"],
-  "@wolffc/payload-image-framing/s3": ["s3FramingStorage"]
+  "@wolffc80/payload-image-framing": ["imageFramingPlugin", "localDiskStorage", "DEFAULT_EDITOR_PATH"],
+  "@wolffc80/payload-image-framing/core": ["resolveFraming", "visibleRect", "objectPosition", "matchFrames"],
+  "@wolffc80/payload-image-framing/server": ["cropToken", "readCropToken", "frameImage", "cropUrl"],
+  "@wolffc80/payload-image-framing/client": ["FramingEditor", "UsageFramingField", "FramingCanvas", "PreviewStrip"],
+  "@wolffc80/payload-image-framing/next": ["frameImage", "FramedImage"],
+  "@wolffc80/payload-image-framing/s3": ["s3FramingStorage"]
 }
 JSON
 
@@ -118,7 +118,7 @@ echo "ok   types of every entry point"
 
 echo "== bundling ./core for the browser without Node polyfills"
 # Bundlers like Next polyfill Node modules quietly; esbuild for the browser fails on them.
-echo "import * as core from '@wolffc/payload-image-framing/core'; console.log(core)" > browser.mjs
+echo "import * as core from '@wolffc80/payload-image-framing/core'; console.log(core)" > browser.mjs
 pnpm exec esbuild browser.mjs --bundle --platform=browser --format=esm --log-level=error --outfile=browser.out.js
 echo "ok   ./core bundles for the browser"
 
@@ -130,8 +130,8 @@ mkdir "$work/plain"
   # npm with --legacy-peer-deps installs no peers: no next, no payload.
   npm install --silent --no-audit --no-fund --legacy-peer-deps "$tarball" react@19 react-dom@19 >/dev/null
   cat > render.mjs <<'JS'
-import { defineFraming, frameAspectVariables, framePositionCss } from '@wolffc/payload-image-framing/core'
-import { frameImage } from '@wolffc/payload-image-framing/server'
+import { defineFraming, frameAspectVariables, framePositionCss } from '@wolffc80/payload-image-framing/core'
+import { frameImage } from '@wolffc80/payload-image-framing/server'
 import { createElement as h } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 
@@ -183,13 +183,13 @@ cd "$work/consumer"
 echo 'export const importMap = {}' > 'app/(payload)/admin/importMap.js'
 PAYLOAD_CONFIG_PATH=payload.config.ts pnpm exec payload generate:importmap >/dev/null
 for component in FramingEditor UsageFramingField; do
-  if ! grep -q "'@wolffc/payload-image-framing/client#$component'\|\"@wolffc/payload-image-framing/client#$component\"" 'app/(payload)/admin/importMap.js'; then
-    echo "The import map has no @wolffc/payload-image-framing/client#$component:" >&2
+  if ! grep -q "'@wolffc80/payload-image-framing/client#$component'\|\"@wolffc80/payload-image-framing/client#$component\"" 'app/(payload)/admin/importMap.js'; then
+    echo "The import map has no @wolffc80/payload-image-framing/client#$component:" >&2
     cat 'app/(payload)/admin/importMap.js' >&2
     exit 1
   fi
 done
-echo "ok   import map has both editors from @wolffc/payload-image-framing/client"
+echo "ok   import map has both editors from @wolffc80/payload-image-framing/client"
 
 NEXT_TELEMETRY_DISABLED=1 pnpm exec next build > build.log 2>&1 || { tail -60 build.log >&2; exit 1; }
 echo "ok   next build (admin with the package's editors, ./core in a client component, <FramedImage>)"

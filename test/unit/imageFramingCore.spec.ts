@@ -12,7 +12,7 @@ import {
   previewPlacement,
   resolveFraming,
   visibleRect,
-} from '@wolffc/payload-image-framing/core'
+} from '@wolffc80/payload-image-framing/core'
 
 /**
  * The framing algorithm (#316): which part of a photo a frame of a given shape

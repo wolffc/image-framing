@@ -5,14 +5,14 @@ plugin rebuilds the image sizes from the crop and caches cropped copies in the
 same bucket with `s3FramingStorage`.
 
 ```bash
-npm i @payloadcms/storage-s3 @wolffc/payload-image-framing
+npm i @payloadcms/storage-s3 @wolffc80/payload-image-framing
 ```
 
 ```ts
 // payload.config.ts
 import { s3Storage } from '@payloadcms/storage-s3'
-import { imageFramingPlugin } from '@wolffc/payload-image-framing'
-import { s3FramingStorage } from '@wolffc/payload-image-framing/s3'
+import { imageFramingPlugin } from '@wolffc80/payload-image-framing'
+import { s3FramingStorage } from '@wolffc80/payload-image-framing/s3'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
 

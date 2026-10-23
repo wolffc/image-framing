@@ -1,5 +1,5 @@
 /**
- * `@wolffc/payload-image-framing`: the Payload plugin. The framing model is in
+ * `@wolffc80/payload-image-framing`: the Payload plugin. The framing model is in
  * `./core`, the render helpers in `./server` and the admin components in
  * `./client`.
  */

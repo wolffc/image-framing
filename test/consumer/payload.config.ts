@@ -1,5 +1,5 @@
 import { sqliteAdapter } from '@payloadcms/db-sqlite'
-import { imageFramingPlugin } from '@wolffc/payload-image-framing'
+import { imageFramingPlugin } from '@wolffc80/payload-image-framing'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buildConfig } from 'payload'

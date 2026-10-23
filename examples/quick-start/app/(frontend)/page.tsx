@@ -1,6 +1,6 @@
 import config from '@payload-config'
-import { FramedImage } from '@wolffc/payload-image-framing/next'
-import type { FrameableMedia } from '@wolffc/payload-image-framing/server'
+import { FramedImage } from '@wolffc80/payload-image-framing/next'
+import type { FrameableMedia } from '@wolffc80/payload-image-framing/server'
 import { getPayload } from 'payload'
 
 export const dynamic = 'force-dynamic'

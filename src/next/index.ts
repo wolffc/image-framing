@@ -1,5 +1,5 @@
 /**
- * `@wolffc/payload-image-framing/next`: Next.js helpers. `<FramedImage>`
+ * `@wolffc80/payload-image-framing/next`: Next.js helpers. `<FramedImage>`
  * renders a framed image with `next/image` in a server component.
  * `frameImage` has no Next dependency and lives in `./server`; it is
  * re-exported here for convenience.

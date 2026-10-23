@@ -14,8 +14,8 @@ import {
 import sharp from 'sharp'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { cropUrl, frameImage } from '@wolffc/payload-image-framing/server'
-import { imageFramingPlugin } from '@wolffc/payload-image-framing'
+import { cropUrl, frameImage } from '@wolffc80/payload-image-framing/server'
+import { imageFramingPlugin } from '@wolffc80/payload-image-framing'
 
 /**
  * Inputs a real Payload hands the plugin: animated GIFs, SVGs, large crops,

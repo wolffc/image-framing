@@ -3,7 +3,7 @@
 Non-destructive crop and focus areas for [Payload CMS](https://payloadcms.com) upload collections: editors set the part of a photo a site may show and its subject, and every image size, layout and breakpoint shows that part, with the subject in view and away from text. Any place that uses a photo can set its own crop, narrower or wider, and the original file is never changed.
 
 ```bash
-npm install @wolffc/payload-image-framing
+npm install @wolffc80/payload-image-framing
 ```
 
 ![The media editor: the crop area (solid frame), the focus area (dashed frame) and previews in common shapes](https://raw.githubusercontent.com/wolffc/image-framing/main/docs/images/media-editor.png)
@@ -40,14 +40,14 @@ Payload's built-in crop overwrites the uploaded file, so a crop can't be undone 
 1. Install the package:
 
    ```bash
-   npm install @wolffc/payload-image-framing
+   npm install @wolffc80/payload-image-framing
    ```
 
 2. Add the plugin, and `sharp` if your config doesn't have it yet:
 
    ```ts
    // payload.config.ts
-   import { imageFramingPlugin } from '@wolffc/payload-image-framing'
+   import { imageFramingPlugin } from '@wolffc80/payload-image-framing'
    import sharp from 'sharp'
 
    export default buildConfig({
@@ -83,7 +83,7 @@ Payload's built-in crop overwrites the uploaded file, so a crop can't be undone 
 With the plugin installed as above, render a framed photo in a server component:
 
 ```tsx
-import { FramedImage } from '@wolffc/payload-image-framing/next'
+import { FramedImage } from '@wolffc80/payload-image-framing/next'
 
 // `post.image` is the media document (depth ≥ 1).
 export const PostImage = ({ post }: { post: Post }) => (
@@ -128,8 +128,8 @@ Every option is optional except `collections`; the defaults are the behaviour wi
 | `usages`          | `{ [path]: UsageOptions }`                                           | `{}`                                                                     | Upload fields that get their own crop and focus area (see [Usage paths](#usage-paths)).                                                                                                                    |
 | `framing`         | `FramingConfig` from `defineFraming`                                 | `base` + `md` from 768 px                                                | The breakpoints the usage drawer previews; pass the same config to `frameImage`.                                                                                                                           |
 | `translations`    | `{ [language]: { [key]: string } }`                                  | English and German                                                       | Admin texts to override or add, by key (see [Admin translations](#admin-translations)).                                                                                                                    |
-| `editorPath`      | `string`                                                             | `'@wolffc/payload-image-framing/client#FramingEditor'`                   | Component path of the media editor, to use your own.                                                                                                                                                       |
-| `usageEditorPath` | `string`                                                             | `'@wolffc/payload-image-framing/client#UsageFramingField'`               | Component path of the usage editor, to use your own.                                                                                                                                                       |
+| `editorPath`      | `string`                                                             | `'@wolffc80/payload-image-framing/client#FramingEditor'`                 | Component path of the media editor, to use your own.                                                                                                                                                       |
+| `usageEditorPath` | `string`                                                             | `'@wolffc80/payload-image-framing/client#UsageFramingField'`             | Component path of the usage editor, to use your own.                                                                                                                                                       |
 | `disabled`        | `boolean`                                                            | `false`                                                                  | Turns the plugin off but keeps its fields, so the database stays the same: no hooks, endpoint or editors.                                                                                                  |
 
 `UsageOptions`, per entry in `usages`:
@@ -186,10 +186,10 @@ imageFramingPlugin({
 
 ## Rendering
 
-`frameImage` from `@wolffc/payload-image-framing/server` turns a media document, a usage's override and its frames into what an image needs. It needs neither Next.js nor Payload, only the secret, so call it on a server.
+`frameImage` from `@wolffc80/payload-image-framing/server` turns a media document, a usage's override and its frames into what an image needs. It needs neither Next.js nor Payload, only the secret, so call it on a server.
 
 ```ts
-import { frameImage } from '@wolffc/payload-image-framing/server'
+import { frameImage } from '@wolffc80/payload-image-framing/server'
 
 const { resource, style, focus } = frameImage({
   media: page.header.image, // the media document (depth ≥ 1)
@@ -217,8 +217,8 @@ It returns `resource` (`url` of the cropped copy, or the original when the crop 
 **Next.js:** `<FramedImage>` from `./next` wraps `next/image` in a box of the frame's shape, positioned per breakpoint, with one small stylesheet per breakpoint config, so no Tailwind is needed. It takes `frameImage`'s options and `next/image`'s props; `boxClassName`/`boxStyle` style the box, `shaped={false}` leaves its size to you, and without `frames` it renders the cropped photo in its own shape.
 
 ```tsx
-import { matchFrames } from '@wolffc/payload-image-framing/core'
-import { FramedImage } from '@wolffc/payload-image-framing/next'
+import { matchFrames } from '@wolffc80/payload-image-framing/core'
+import { FramedImage } from '@wolffc80/payload-image-framing/next'
 
 export const Header = ({ page }: { page: Page }) => (
   <FramedImage
@@ -259,7 +259,7 @@ By default a usage has a frame for phones (`base`) and one from 768 px up (`md`)
 
 ```ts
 // framing.config.ts, imported by payload.config.ts and by the site
-import { defineFraming } from '@wolffc/payload-image-framing/core'
+import { defineFraming } from '@wolffc80/payload-image-framing/core'
 
 export const framing = defineFraming({
   breakpoints: {
@@ -307,7 +307,7 @@ By default the plugin reads originals from, and writes rebuilt sizes and cropped
 
 With a storage plugin (`@payloadcms/storage-*`, `disableLocalStorage`):
 
-- **S3, R2, MinIO**: `storage: s3FramingStorage({ bucket, config })` from `@wolffc/payload-image-framing/s3` (needs `@aws-sdk/client-s3`, which `@payloadcms/storage-s3` installs) reads and writes the bucket that `@payloadcms/storage-s3` uses: sizes are rebuilt in the bucket, cropped copies are cached under `image-framing-cache/<collection>/` and removed when the document changes or is deleted. See [examples/cloud-storage](examples/cloud-storage).
+- **S3, R2, MinIO**: `storage: s3FramingStorage({ bucket, config })` from `@wolffc80/payload-image-framing/s3` (needs `@aws-sdk/client-s3`, which `@payloadcms/storage-s3` installs) reads and writes the bucket that `@payloadcms/storage-s3` uses: sizes are rebuilt in the bucket, cropped copies are cached under `image-framing-cache/<collection>/` and removed when the document changes or is deleted. See [examples/cloud-storage](examples/cloud-storage).
 - **Any other adapter**, without a `storage` option: the plugin reads originals through the collection's upload handlers (the storage plugin's; not registered with `disablePayloadAccessControl`), so the crop endpoint works, and caches cropped copies on local disk (the system's temp directory). It can't write to the bucket, so the image sizes stay made from the whole photo; it warns unless `rebuildSizes: false`.
 - **Your own backend**: implement `FramingStorage` (`readOriginal`, `writeSize`, `readCached`, `writeCached`, `clearCached`) and pass a factory `(collection, doc, req) => FramingStorage`.
 
@@ -372,7 +372,7 @@ The integration tests cover these on every database adapter.
 
 | Problem                                                                      | Cause and fix                                                                                                                                                                                                                                            |
 | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The media editor or the usage's "Adjust the framing" doesn't show            | The import map lacks the editors: run `npx payload generate:importmap` and restart. `importMap.js` must list `@wolffc/payload-image-framing/client#FramingEditor`.                                                                                       |
+| The media editor or the usage's "Adjust the framing" doesn't show            | The import map lacks the editors: run `npx payload generate:importmap` and restart. `importMap.js` must list `@wolffc80/payload-image-framing/client#FramingEditor`.                                                                                     |
 | `imageFraming: set sharp in the Payload config`                              | Add `sharp` (`import sharp from 'sharp'`) to `buildConfig`.                                                                                                                                                                                              |
 | `imageFraming: no upload field found for usage "…"`                          | The path doesn't match: check the collection or block slug and the named groups, arrays and tabs on the way (see [Usage paths](#usage-paths)); unnamed tabs, rows and collapsibles don't count.                                                          |
 | A cropped URL answers 404                                                    | `frameImage` got another secret than the plugin; or the page was rendered from an older version of the media (the signature includes `updatedAt`: revalidate it); or the visitor may not read the media (collection read access); or the file is an SVG. |
