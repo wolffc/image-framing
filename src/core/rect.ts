@@ -12,6 +12,7 @@ export interface Rect {
 /** A rect as stored: every value may be missing. */
 export type StoredRect = { [K in keyof Rect]?: number | null } | null | undefined
 
+/** The whole photo. */
 export const FULL_RECT: Rect = Object.freeze({ x: 0, y: 0, width: 100, height: 100 })
 
 /** The smallest crop or focus area, so a rect never collapses to nothing. */
@@ -37,6 +38,7 @@ export const isRectInside = (inner: Rect, outer: Rect, tolerance = 0.01): boolea
   inner.x + inner.width <= outer.x + outer.width + tolerance &&
   inner.y + inner.height <= outer.y + outer.height + tolerance
 
+/** Whether a rect covers the whole photo. */
 export const isFullRect = (rect: Rect): boolean =>
   rect.x <= 0 && rect.y <= 0 && rect.width >= 100 && rect.height >= 100
 
@@ -49,6 +51,7 @@ export const normalizeRect = (rect: Rect, within: Rect = FULL_RECT): Rect => {
   return { x: round(x), y: round(y), width: round(width), height: round(height) }
 }
 
+/** The centre of a rect, in percent of the photo. */
 export const rectCentre = (rect: Rect): { x: number; y: number } => ({
   x: rect.x + rect.width / 2,
   y: rect.y + rect.height / 2,
@@ -81,6 +84,7 @@ export interface FramingSource {
   focalY?: number | null
 }
 
+/** A crop area and the focus area inside it, both in percent of the photo. */
 export interface Framing {
   crop: Rect
   focus: Rect

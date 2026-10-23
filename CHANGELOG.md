@@ -60,3 +60,6 @@ package uses [Semantic Versioning](https://semver.org/).
   existing project) built in CI, and snippets (cloud storage, without Next.js,
   several collections, headless). `context: { imageFraming: { rebuild: true } }`
   on an update forces the size rebuild, e.g. to regenerate existing sizes.
+- README for the published package (concepts with a diagram, every option,
+  rendering, storage, security, migrations, compatibility, troubleshooting,
+  screenshots), CONTRIBUTING.md, and a doc comment on every export.

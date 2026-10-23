@@ -31,6 +31,7 @@ import { addUsages, type UsageOptions } from './usages.js'
  * through the import map, so run `payload generate:importmap` after installing.
  */
 export const DEFAULT_EDITOR_PATH = '@wolffc/payload-image-framing/client#FramingEditor'
+/** Where the usage editor lives, as a Payload component path (see `DEFAULT_EDITOR_PATH`). */
 export const DEFAULT_USAGE_EDITOR_PATH = '@wolffc/payload-image-framing/client#UsageFramingField'
 
 /** The frame shapes the media editor previews: the shapes sites commonly crop to. */
@@ -48,6 +49,7 @@ export const DEFAULT_PREVIEW_SHAPES: PreviewShape[] = [
   },
 ]
 
+/** A frame shape the media editor previews the framing in. */
 export interface PreviewShape {
   key: string
   /** A string, or one per language: `{ en: 'Square', de: 'Quadrat' }`. */
@@ -89,6 +91,7 @@ export interface CollectionFramingOptions {
   access?: FramingAccess
 }
 
+/** Options of `imageFramingPlugin`; see the README for a table with the defaults. */
 export interface ImageFramingPluginOptions<
   K extends string = DefaultBreakpoint,
 > extends CollectionFramingOptions {

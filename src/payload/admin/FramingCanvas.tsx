@@ -55,6 +55,7 @@ export const percentBox = (rect: Rect): React.CSSProperties => ({
   height: `${rect.height}%`,
 })
 
+/** Props of `FramingCanvas`. */
 export interface FramingCanvasProps {
   /** The original photo. */
   url: string

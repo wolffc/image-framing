@@ -1,141 +1,225 @@
 # Payload image framing
 
-Non-destructive crop and focus areas for [Payload CMS](https://payloadcms.com) upload collections, and the helpers to render them. Developed for weflyhome.com and published as `@wolffc/payload-image-framing` (MIT).
+Non-destructive crop and focus areas for [Payload CMS](https://payloadcms.com) upload collections: editors set the part of a photo a site may show and its subject, and every image size, layout and breakpoint shows that part, with the subject in view and away from text. Any place that uses a photo can set its own crop, narrower or wider, and the original file is never changed.
 
-- **Crop area**: the part of the photo the site shows, in every size and shape, unless a usage sets its own. The original stays untouched, so a crop can be widened again later.
-- **Focus area**: the subject. Every frame keeps it in view where the shape allows, and away from the parts of the frame that layouts cover with text.
-- **Per-usage override**: a block (or any configured upload field) can set its own crop and focus area. The media crop is only the default: an override may be narrower or wider, up to the whole photo. Overrides are kept inside the photo when saved.
+```bash
+npm install @wolffc/payload-image-framing
+```
 
-## Status
+![The media editor: the crop area (solid frame), the focus area (dashed frame) and previews in common shapes](https://raw.githubusercontent.com/wolffc/image-framing/main/docs/images/media-editor.png)
 
-Work in progress: being extracted from weflyhome.com into a standalone package. Not on npm yet; see the [issues](https://github.com/wolffc/image-framing/issues) for the road to 1.0.
+![A usage's drawer: its own crop on the whole photo, the media's crop dotted, and previews of its frames with the parts text covers hatched](https://raw.githubusercontent.com/wolffc/image-framing/main/docs/images/usage-drawer.png)
 
-## Layout
+## Contents
 
-| Path                 | Contents                                                                                                                                                                                    | May import                                   |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `src/core/`          | Rect types and validation, override resolution (`resolveFraming(media, override)`), the framing algorithm (`visibleRect`, `objectPosition`), frame rules (`matchFrames`), preview placement | Nothing but itself: runs in the browser      |
-| `src/server/`        | `frameImage()` (a media doc, an optional override and frame shapes to the cropped URL and `object-position` CSS variables) and the signed crop tokens                                       | `core/`, `node:crypto`                       |
-| `src/payload/`       | `imageFramingPlugin()`, the fields, hooks, the cropped-copy route and the storage interface                                                                                                 | `core/`, `server/`, `payload`, `sharp`, Node |
-| `src/payload/admin/` | The admin components (`'use client'`)                                                                                                                                                       | `core/`, `react`, `@payloadcms/ui`           |
-| `src/next/`          | Next.js-only helpers (to come)                                                                                                                                                              | `core/`, `server/`, `next`                   |
-| `src/exports/`       | Entry points that only re-export (`./server`, `./client`)                                                                                                                                   |                                              |
-| `dev/`               | A Payload + Next app for development and tests (SQLite)                                                                                                                                     | the package by its name                      |
-| `test/unit/`         | Vitest unit tests                                                                                                                                                                           |                                              |
-| `test/int/`          | Vitest integration tests against a Payload instance (SQLite, no services)                                                                                                                   |                                              |
-| `test/consumer/`     | A fresh Payload + Next app the pack test builds against the packed package                                                                                                                  | the package by its name                      |
-| `examples/`          | Example apps and snippets (`pnpm build:examples` builds the apps)                                                                                                                           |                                              |
-| `scripts/`           | `pack-smoke.sh`: packs the package and installs it into a scratch project                                                                                                                   |                                              |
+[Why](#why) · [Requirements](#requirements) · [Install](#install) · [Quick start](#quick-start) · [Concepts](#concepts) · [Plugin options](#plugin-options) · [Usage paths](#usage-paths) · [Rendering](#rendering) · [Generated image sizes](#generated-image-sizes) · [The crop endpoint and caching](#the-crop-endpoint-and-caching) · [Storage](#storage) · [Security](#security) · [Database and migrations](#database-and-migrations) · [Admin translations](#admin-translations) · [Limitations](#limitations) · [Compatibility](#compatibility) · [Troubleshooting](#troubleshooting) · [Examples](#examples) · [Contributing](#contributing)
 
-`test/unit/imageFramingBoundary.spec.ts` checks the import rules above, and that every admin module is marked `'use client'`.
+## Why
 
-## Entry points
+Payload's built-in crop overwrites the uploaded file, so a crop can't be undone or widened later, and its focal point is a single point: a layout can't tell how much of the subject must stay in view, or keep it out from under a headline.
 
-| Import                                 | Contents                                                                                                                  | Where                                      |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| `@wolffc/payload-image-framing`        | `imageFramingPlugin`, its options, `FramingStorage`, `localDiskStorage`                                                   | Payload config                             |
-| `@wolffc/payload-image-framing/core`   | Rects, `resolveFraming`, `visibleRect`, `objectPosition`, `matchFrames`, `previewPlacement`, `relativeRect` and the types | Anywhere, including client components      |
-| `@wolffc/payload-image-framing/server` | `frameImage`, `cropUrl`, `cropToken`/`readCropToken`: no Next or Payload needed                                           | Server only: they use the secret           |
-| `@wolffc/payload-image-framing/client` | `FramingEditor`, `UsageFramingField`, `FramingCanvas`, `PreviewStrip` (`'use client'`)                                    | Admin panel, loaded through the import map |
-| `@wolffc/payload-image-framing/next`   | `<FramedImage>` (around `next/image`), and `frameImage` again                                                             | Next server components                     |
-
-Every entry lists its exports explicitly; `test/unit/publicApi.spec.ts` snapshots them, so a change to the public API shows up in review.
-
-The plugin registers its admin editors by package path (`@wolffc/payload-image-framing/client#FramingEditor`), so after installing or updating the package run `payload generate:importmap`. The `editorPath` and `usageEditorPath` options are only needed for your own editors.
-
-`./server` doesn't import `server-only`: that package throws outside Next's server bundles, which would break the helpers in plain Node, tests or other frameworks. It does import `node:crypto`, so a bundler without Node polyfills fails to build a browser bundle that pulls it in; Next polyfills `crypto`, so in Next keep `./server` out of client components yourself. The secret must stay on the server.
+|                                              | Payload's crop and focal point          | This plugin                                                        |
+| -------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------ |
+| Original file                                | Overwritten by the crop                 | Never changed: the crop is data                                    |
+| Undo or widen a crop                         | No                                      | Yes, any time                                                      |
+| Subject                                      | One point                               | An area that frames keep in view                                   |
+| Image sizes                                  | From the cropped file, around the point | Rebuilt from the crop area, fixed shapes framed around the subject |
+| Different crop for one page, block or global | No                                      | Yes, narrower or wider than the media's                            |
+| Text over the photo                          | Subject may end up under it             | Frames keep the subject in the part text leaves free               |
+| Responsive frames                            | `object-position` from the point        | One position per breakpoint, from the subject and the frame shape  |
 
 ## Requirements
 
-- Payload `^3.39.0` (3.39 is the lowest version CI checks) with `sharp` in the Payload config; the package doesn't install sharp itself, it uses Payload's
-- React 19; Next.js 15.2.3+ or 16 for the admin panel
-- Node.js 20.18.1 or later
-- TypeScript 5.4 or later, if you use the types (`NoInfer`)
+- Payload `^3.39.0`, with `sharp` in the Payload config: the plugin crops and resizes with Payload's sharp and doesn't install its own. Localized usages need Payload 3.80 or later (see [Limitations](#limitations)).
+- Any Payload database adapter: Postgres, SQLite and MongoDB are tested.
+- React 19. Next.js 15.2.3 or later or 16 for the admin panel; for the site, Next.js is optional: `frameImage` runs on any server.
+- Node.js 20.18.1 or later. TypeScript 5.4 or later, if you use the types.
 
-## Development
+## Install
 
-Everything runs in Docker; the host needs only Docker with the compose plugin.
+1. Install the package:
 
-```bash
-./dev.sh start        # dev app on http://localhost:3000 (admin: /admin, logs in automatically)
-./dev.sh test         # unit tests (no services)
-./dev.sh test-int     # integration tests on SQLite; `./dev.sh test-int postgres` or `mongodb` starts that database
-./dev.sh test-e2e     # Playwright against the dev app (starts it)
-./dev.sh test-s3      # cloud storage tests against an S3-compatible server
-./dev.sh typecheck    # tsc on src/, test/ and dev/
-./dev.sh build        # dist/ (SWC + tsc declarations)
-./dev.sh pnpm lint    # ESLint; `pnpm format` / `pnpm format:check` for Prettier
-./dev.sh pnpm test:pack  # pack, install into a scratch project, import every entry point
-./dev.sh shell        # a shell in the container; ./dev.sh <cmd> runs any command
-./dev.sh reset        # remove containers and volumes
-```
+   ```bash
+   npm install @wolffc/payload-image-framing
+   ```
 
-`PORT=3100 ./dev.sh start` uses another host port. After changing the plugin's admin components or paths, run `./dev.sh pnpm generate:importmap`; after changing the dev collections, `./dev.sh pnpm generate:types`.
+2. Add the plugin, and `sharp` if your config doesn't have it yet:
 
-Tests:
+   ```ts
+   // payload.config.ts
+   import { imageFramingPlugin } from '@wolffc/payload-image-framing'
+   import sharp from 'sharp'
 
-| Command          | What                                                                                                                                                                                                     | Where                                     |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| `pnpm test`      | Unit tests                                                                                                                                                                                               | `test/unit/`                              |
-| `pnpm test:int`  | Integration tests against a real Payload: the dev app's config (`dev/framing.int.spec.ts`) on the database `DATABASE_URI` names (SQLite in a temp folder by default), plus focused configs (`test/int/`) | `dev/`, `test/int/`                       |
-| `pnpm test:e2e`  | Playwright against the running dev app (`E2E_BASE_URL`, default `http://localhost:3000`)                                                                                                                 | `dev/framing.e2e.spec.ts`                 |
-| `pnpm test:pack` | Pack, install into a scratch project, build a Payload + Next app with it                                                                                                                                 | `scripts/pack-smoke.sh`, `test/consumer/` |
+   export default buildConfig({
+     sharp,
+     plugins: [imageFramingPlugin({ collections: ['media'] })],
+     // …
+   })
+   ```
 
-CI (`.github/workflows/ci.yml`) runs on every pull request: lint, format check, typecheck, unit and SQLite integration tests and the build; unit tests on Node 20 and 22 too; the integration tests on SQLite, Postgres and MongoDB, each on the latest and the lowest supported Payload; the e2e tests; the cloud storage tests; and the pack test on the latest and lowest Payload. A weekly workflow runs the tests against Payload's latest release. Releases must be packed with pnpm: only pnpm applies `publishConfig.exports`, which points the entry points at `dist/`.
+3. Generate the import map, so the admin panel finds the editors (again after updating the package):
 
-The dev app (`dev/payload.config.ts`) has a public `media` collection with three image sizes (one of a fixed shape), a `pages` collection with framed usages in a group (`hero`), an array (`gallery`), a block (`card`) and a localized upload field (`social`), and a `header` global with a framed `logo`; framed for three breakpoints (`dev/framing.ts`), in English and German. `DATABASE_URI` picks the database: SQLite (default, `dev/.data/`), `postgres://…` or `mongodb://…`. The frontend at `/` renders the pages with `frameImage()`, a plain `<img>` and `framePositionCss()`.
+   ```bash
+   npx payload generate:importmap
+   ```
 
-## Use
+4. With Postgres or SQLite in production, create and run a migration for the new fields (MongoDB needs none):
 
-```ts
-// payload.config.ts
-import sharp from 'sharp'
-import { imageFramingPlugin } from '@wolffc/payload-image-framing'
+   ```bash
+   npx payload migrate:create image-framing
+   npx payload migrate
+   ```
 
-export default buildConfig({
-  sharp, // required: the plugin crops and resizes with Payload's sharp
-  secret: process.env.PAYLOAD_SECRET,
-  plugins: [
-    imageFramingPlugin({
-      collections: ['media'],
-      usages: {
-        // <collection or global>.<field path>, or block:<block slug>.<field path>;
-        // unnamed tabs, rows and collapsibles don't count
-        'pages.header.image': {
-          frames: [{ when: { layout: 'wide' }, frames: { base: { aspect: 16 / 9 } } }],
-        },
-        'block:card.image': {},
-      },
-    }),
-  ],
-  // …
-})
-```
+5. With `next/image`, allow the crop route next to the file route in `next.config`:
+
+   ```js
+   images: {
+     localPatterns: [{ pathname: '/api/media/file/**' }, { pathname: '/api/media/crop/**' }],
+   }
+   ```
+
+## Quick start
+
+With the plugin installed as above, render a framed photo in a server component:
 
 ```tsx
-// a server component
-import { frameImage } from '@wolffc/payload-image-framing/server'
+import { FramedImage } from '@wolffc/payload-image-framing/next'
 
-const { resource, style } = frameImage({
-  media: page.header.image, // the media document (depth ≥ 1)
-  override: page.header.imageFraming,
-  frames: { base: { aspect: 16 / 9 }, md: { aspect: 2.4, cover: [{ edge: 'left', size: 45 }] } },
-  secret: process.env.PAYLOAD_SECRET, // the same secret as the plugin
-})
-// <div style={style}><Image src={resource.url} className="object-cover object-[var(--frame-pos)] min-[768px]:object-[var(--frame-pos-md)]" … /></div>
+// `post.image` is the media document (depth ≥ 1).
+export const PostImage = ({ post }: { post: Post }) => (
+  <FramedImage
+    media={post.image}
+    frames={{ base: { aspect: 16 / 9 } }}
+    secret={process.env.PAYLOAD_SECRET!}
+    sizes="(min-width: 1100px) 1100px, 100vw"
+  />
+)
 ```
 
-### Rendering
+The photo is cut to its crop area and shown in a 16:9 box, placed so that the focus area stays in view. Without Next.js, use `frameImage` (see [Rendering](#rendering)). The [quick-start example](examples/quick-start) is a complete app.
 
-`frameImage` (from `./server`) turns a media document, the usage's override and its frames into what an image tag needs: the URL of the cropped copy, its pixel size, the `object-position` per breakpoint as CSS variables (`style`), and the focus area within the served image (`focus`, for layouts that draw around the subject). It needs neither Next.js nor Payload, only the secret, so it runs on any server.
+## Concepts
 
-**Next.js:** `<FramedImage>` from `./next` wraps `next/image` in a box of the frame's shape, positioned per breakpoint, with one small stylesheet per framing config (no Tailwind needed):
+![Three panels: a photo with its crop area and focus area; a 4:5 phone frame that fills the crop's height and slides towards the subject; a 21:9 desktop frame with text over its left 40 %, where the subject stays in the free part](https://raw.githubusercontent.com/wolffc/image-framing/main/docs/images/framing.svg)
+
+- **Crop area**: the part of the photo a site may show, in every size and shape. Set on the media document; the whole photo by default.
+- **Focus area**: the subject. Every frame keeps it in view where the frame's shape allows. By default 30 % of the photo around Payload's focal point.
+- **Usage**: a place that shows a photo, an upload field you name in the plugin options, e.g. a page header or an image in a block. A usage can set its own crop and focus area (the **override**): narrower or wider than the media's, up to the whole photo. Without one, it shows the media's.
+- **Frame**: the shape a layout shows a photo in, as an aspect ratio, per breakpoint. A **frame rule** picks the frames by the values of the fields next to the image: `{ when: { layout: 'wide' }, frames: { base: { aspect: 4 / 5 }, md: { aspect: 21 / 9 } } }`. The plugin uses the rules for the previews in the admin, the site the same rules for rendering (`matchFrames`).
+- **Cover area**: a band along one edge of a frame that the layout covers, e.g. with text: `{ edge: 'left', size: 40 }` is the left 40 % of the frame. The subject is kept out of it.
+- **Breakpoints**: `base` (phones) and every other breakpoint from its minimum width up; `md` from 768 px by default. A breakpoint without a frame of its own uses the next smaller one's.
+
+How a frame shows a photo: it is the largest rectangle of the frame's shape inside the crop area, so it fills the crop along one side and only slides along the other. It slides to put the focus area in the middle of the part of the frame no cover area takes, and stops at the crop's edges. Rendering crops the copy to the crop area and moves it with `object-position`, so the frame needs nothing but CSS.
+
+## Plugin options
+
+Every option is optional except `collections`; the defaults are the behaviour without it.
+
+| Option            | Type                                                                 | Default                                                                  | Description                                                                                                                                                                                                |
+| ----------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `collections`     | `CollectionSlug[]` or `{ [slug]: true \| CollectionFramingOptions }` | (required)                                                               | Upload collections that get a crop and a focus area. The object form takes per-collection options, which replace the plugin-wide ones below.                                                               |
+| `previewShapes`   | `PreviewShape[]`                                                     | `DEFAULT_PREVIEW_SHAPES` (16:9, 3:2, 4:3, 21:9, 4:5, 1:1, 1200×630)      | Shapes the media editor previews. Plugin-wide or per collection.                                                                                                                                           |
+| `storage`         | `(collection, doc, req) => FramingStorage`                           | `localDiskStorage` on the collection's `staticDir`                       | File access for the size rebuild and the cropped copies (see [Storage](#storage)). Plugin-wide or per collection.                                                                                          |
+| `rebuildSizes`    | `boolean \| string[]`                                                | `true`                                                                   | Which generated image sizes are rebuilt from the crop: all, none (`false`: Payload's sizes stay made from the whole photo), or the listed size names. Plugin-wide or per collection.                       |
+| `endpoint`        | `false \| { path?: string; cacheControl?: string }`                  | `{ path: '/crop', cacheControl: 'public, max-age=31536000, immutable' }` | The cropped-copy endpoint. `false` leaves it out (e.g. an image service crops from the signed rect); with another `path`, pass `routePrefix` to `frameImage`. Plugin-wide or per collection.               |
+| `maxSize`         | `number`                                                             | `4000`                                                                   | The longest side of a cropped copy in pixels; larger crops are scaled down. Pass the same value to `frameImage`. Plugin-wide or per collection.                                                            |
+| `access`          | `{ create?, read?, update? }` (field access functions)               | none                                                                     | Field access for the added fields: `crop`, `focusArea` and the usage groups. The editors follow it: read-only without update access, hidden without read access. Plugin-wide, per collection or per usage. |
+| `secret`          | `string`                                                             | the Payload config's `secret`                                            | Signs the cropped-copy URLs; `frameImage` needs the same value.                                                                                                                                            |
+| `usages`          | `{ [path]: UsageOptions }`                                           | `{}`                                                                     | Upload fields that get their own crop and focus area (see [Usage paths](#usage-paths)).                                                                                                                    |
+| `framing`         | `FramingConfig` from `defineFraming`                                 | `base` + `md` from 768 px                                                | The breakpoints the usage drawer previews; pass the same config to `frameImage`.                                                                                                                           |
+| `translations`    | `{ [language]: { [key]: string } }`                                  | English and German                                                       | Admin texts to override or add, by key (see [Admin translations](#admin-translations)).                                                                                                                    |
+| `editorPath`      | `string`                                                             | `'@wolffc/payload-image-framing/client#FramingEditor'`                   | Component path of the media editor, to use your own.                                                                                                                                                       |
+| `usageEditorPath` | `string`                                                             | `'@wolffc/payload-image-framing/client#UsageFramingField'`               | Component path of the usage editor, to use your own.                                                                                                                                                       |
+| `disabled`        | `boolean`                                                            | `false`                                                                  | Turns the plugin off but keeps its fields, so the database stays the same: no hooks, endpoint or editors.                                                                                                  |
+
+`UsageOptions`, per entry in `usages`:
+
+| Option              | Type                                 | Default                  | Description                                                                                                                                  |
+| ------------------- | ------------------------------------ | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `frames`            | `FrameRule[]`                        | `[]`                     | The frames the usage shows the photo in, per breakpoint: the first rule whose `when` matches the fields next to the image. For the previews. |
+| `name`              | `string`                             | `'imageFraming'`         | Name of the group next to the upload field that stores the usage's crop and focus area.                                                      |
+| `label`             | `string` or `{ [language]: string }` | 'Framing for this usage' | Title of the usage's drawer.                                                                                                                 |
+| `admin.description` | `string` or `{ [language]: string }` | none                     | Shown under the usage's framing summary and in its drawer.                                                                                   |
+| `expose`            | `boolean` or `{ name?: string }`     | `false`                  | Adds a virtual field with the computed framing, for headless frontends (see [Rendering](#rendering)).                                        |
+| `access`            | `{ create?, read?, update? }`        | the plugin's `access`    | Field access for the usage's group.                                                                                                          |
+
+The plugin checks its configuration at startup and throws with the reason when a collection in `collections` doesn't exist or isn't an upload collection; a framed collection already has a field named `framing`, `crop` or `focusArea` (the media fields can't be renamed, since `frameImage` reads them); a usage's group name is taken on its level; a usage path matches no upload field, or one with several `relationTo` collections, `hasMany`, or a collection without framing; a frame rule names an undefined breakpoint; or `sharp` or the secret is missing.
+
+The size of a default focus area (30 % of each side) and the smallest crop or focus area (1 %) are fixed: `frameImage` and the editors apply the same defaults without knowing the plugin's options.
+
+## Usage paths
+
+A key in `usages` names an upload field by its data path:
+
+| Path                        | Upload field                                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `pages.image`               | `image` at the top of the `pages` collection                                                                                          |
+| `pages.hero.image`          | in the `hero` group, or the named tab `hero`                                                                                          |
+| `pages.items.image`         | in every row of the `items` array                                                                                                     |
+| `header.logo`               | in the `header` global                                                                                                                |
+| `block:card.image`          | in the `card` block, wherever it is used: in a `blocks` field, a nested block, or through `blockReferences` and the config's `blocks` |
+| `block:gallery.items.image` | in the `items` array of the `gallery` block                                                                                           |
+
+Unnamed tabs, rows and collapsibles don't count, since they don't nest the data. The plugin adds an `imageFraming` group (`crop`, `focusArea`) right after the upload field, with the same localization: a localized upload field gets a localized group, unless a parent is already localized. A usage path that matches no upload field fails at startup, so a renamed field can't silently drop the overrides.
+
+```ts
+imageFramingPlugin({
+  collections: ['media'],
+  usages: {
+    'pages.header.image': {
+      label: 'Header image',
+      frames: [
+        {
+          when: { layout: 'wide' },
+          frames: {
+            base: { aspect: 4 / 5 },
+            md: { aspect: 21 / 9, cover: [{ edge: 'left', size: 45 }] },
+          },
+        },
+        { when: { layout: 'split' }, frames: { base: { aspect: 4 / 3 }, md: { aspect: 1 } } },
+      ],
+    },
+    'block:cta.image': { frames: [{ when: {}, frames: { base: { aspect: 3 / 2 } } }] },
+  },
+})
+```
+
+## Rendering
+
+`frameImage` from `@wolffc/payload-image-framing/server` turns a media document, a usage's override and its frames into what an image needs. It needs neither Next.js nor Payload, only the secret, so call it on a server.
+
+```ts
+import { frameImage } from '@wolffc/payload-image-framing/server'
+
+const { resource, style, focus } = frameImage({
+  media: page.header.image, // the media document (depth ≥ 1)
+  override: page.header.imageFraming, // the usage's own crop and focus area, if any
+  frames: matchFrames(headerFrames, page.header), // the frame per breakpoint
+  framing, // the breakpoints, as for the plugin (default: base + md)
+  secret: process.env.PAYLOAD_SECRET!, // the plugin's secret
+})
+```
+
+| Option        | Description                                                                                                                         |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `media`       | The media document: `id`, `url`, `filename`, `mimeType`, `width`, `height`, `updatedAt`, `crop`, `focusArea`, `focalX`/`focalY`.    |
+| `override`    | The usage's `imageFraming` group; missing values mean "as on the media".                                                            |
+| `frames`      | The frame per breakpoint (`{ base, md?, … }`). Without frames, `style` is empty: a photo shown in its own shape.                    |
+| `framing`     | The breakpoints (`defineFraming`). Default: `base` and `md` from 768 px.                                                            |
+| `secret`      | Signs the URL; the plugin's `secret`.                                                                                               |
+| `maxSize`     | The plugin's `maxSize`, so `width`/`height` match the served copy. Default: 4000.                                                   |
+| `routePrefix` | Where the crop route is, when the media `url` isn't Payload's file route (see [The crop endpoint](#the-crop-endpoint-and-caching)). |
+| `baseUrl`     | Serve the copies from another origin, e.g. a CDN.                                                                                   |
+| `variable`    | Prefix of the CSS variables. Default: `--frame-pos`.                                                                                |
+
+It returns `resource` (`url` of the cropped copy, or the original when the crop is the whole photo; `width` and `height` of that image; `alt`, `filename`, `mimeType`, `updatedAt`), `style` (the `object-position` per breakpoint as CSS variables: `--frame-pos`, `--frame-pos-md`, …) and `focus` (the focus area in percent of the served image, for layouts that draw around the subject). The rects themselves stay on the server.
+
+**Next.js:** `<FramedImage>` from `./next` wraps `next/image` in a box of the frame's shape, positioned per breakpoint, with one small stylesheet per breakpoint config, so no Tailwind is needed. It takes `frameImage`'s options and `next/image`'s props; `boxClassName`/`boxStyle` style the box, `shaped={false}` leaves its size to you, and without `frames` it renders the cropped photo in its own shape.
 
 ```tsx
 import { matchFrames } from '@wolffc/payload-image-framing/core'
 import { FramedImage } from '@wolffc/payload-image-framing/next'
 
-// A server component; `framing` and `headerFrames` as configured for the plugin.
 export const Header = ({ page }: { page: Page }) => (
   <FramedImage
     media={page.header.image}
@@ -149,9 +233,9 @@ export const Header = ({ page }: { page: Page }) => (
 )
 ```
 
-Other `next/image` props pass through; `boxClassName`/`boxStyle` style the box, `shaped={false}` leaves its size to you. Without `frames` it renders the cropped photo in its own shape.
+**Tailwind:** `framedImageClasses(framing)` gives the classes for the configured widths, e.g. `object-[var(--frame-pos)] min-[768px]:object-[var(--frame-pos-md)]`. Tailwind only generates classes it finds in your source: copy the string into your code or safelist it.
 
-**Without Next.js:** an `<img>` with `object-fit: cover` and the CSS helpers. Plain React:
+**Without Next.js:** an `<img>` with `object-fit: cover`, and the CSS helpers from `./core`, which write the media queries for the configured breakpoints (`{ query: 'container' }` writes container queries):
 
 ```tsx
 const { resource, style } = frameImage({ framing, frames, media, override, secret })
@@ -163,73 +247,91 @@ const { resource, style } = frameImage({ framing, frames, media, override, secre
 </div>
 ```
 
-The same in an Astro page (or any template language):
+The same works in any template language; [examples/without-next](examples/without-next) has React and Astro. A `<picture>` with one source per breakpoint isn't needed: one cropped copy serves every breakpoint, and the breakpoints only move it. For responsive sizes, pass `resource.url` to your image service.
 
-```astro
----
-import { frameImage } from '@wolffc/payload-image-framing/server'
-import { frameAspectCss, frameAspectVariables, framePositionCss } from '@wolffc/payload-image-framing/core'
-const { resource, style } = frameImage({ framing, frames, media, secret: import.meta.env.PAYLOAD_SECRET })
-const vars = Object.entries({ ...style, ...frameAspectVariables(framing, frames) }).map(([k, v]) => `${k}:${v}`).join(';')
----
-<style set:html={framePositionCss(framing, '.frame img') + frameAspectCss(framing, '.frame')}></style>
-<div class="frame" style={vars}>
-  <img src={resource.url} width={resource.width} height={resource.height} alt={resource.alt ?? ''} />
-</div>
-```
+**Headless frontends** that only see Payload's REST or GraphQL API can't call `frameImage`: it needs the secret. Set `expose: true` on the usage, and every read returns the computed framing in a virtual field next to the upload field (`imageFramed` for an upload field `image`): `{ url, width, height, alt, mimeType, style, focus }`, made on the server with the frames of the rule that matches. With `depth: 0` it costs one extra query per read. See [examples/headless](examples/headless).
 
-A `<picture>` with one `<source>` per breakpoint isn't needed: one cropped copy serves every breakpoint, and the breakpoints only move it. For responsive sizes, pass `resource.url` to your image service (`next/image`, Astro's `<Image>`, a CDN).
-
-**Headless frontends** that only see Payload's REST or GraphQL API can't call `frameImage`: it needs the secret. Set `expose: true` on the usage, and every read of the document returns the computed framing in a virtual field next to the upload field (`imageFramed` for an upload field `image`; `expose: { name }` for another): `{ url, width, height, alt, mimeType, style, focus }`, made on the server with the frames of the rule that matches the sibling fields. With `depth: 0` it costs one extra query per read.
-
-**Static pages (SSG/ISR):** the cropped URL contains the media version (`updatedAt`). After a media change, old URLs still work but show the old crop, so revalidate the pages that show the image when the media changes (e.g. `revalidatePath` or `revalidateTag` in an `afterChange` hook of the media collection).
+**Static pages (SSG/ISR):** the cropped URL contains the media version (`updatedAt`). After a media change, old URLs still work but show the old crop, so revalidate the pages that show the image when the media changes, e.g. with `revalidatePath` or `revalidateTag` in an `afterChange` hook of the media collection.
 
 ### Breakpoints
 
-By default a usage has a frame for phones (`base`) and one from 768 px up (`md`), and `frameImage` writes `--frame-pos` and `--frame-pos-md`. Define your own breakpoints once and share them between the plugin (the usage drawer previews one frame per breakpoint) and the rendering:
+By default a usage has a frame for phones (`base`) and one from 768 px up (`md`). Define your own breakpoints once and share them between the plugin (the drawer previews one frame per breakpoint) and the rendering:
 
 ```ts
-// framing.config.ts – imported by payload.config.ts and by server components
+// framing.config.ts, imported by payload.config.ts and by the site
 import { defineFraming } from '@wolffc/payload-image-framing/core'
 
 export const framing = defineFraming({
   breakpoints: {
     base: { label: 'Phone' }, // always present, mobile first
     md: { minWidth: 768, label: 'Tablet' },
-    lg: { minWidth: 1280, label: 'Desktop' },
+    lg: { minWidth: 1280, label: { en: 'Desktop', de: 'Desktop' } },
   },
 })
 
-// payload.config.ts
-imageFramingPlugin({ collections: ['media'], framing, usages: { … } })
-
-// a server component
-frameImage({ framing, media, frames: { base: { aspect: 4 / 5 }, lg: { aspect: 21 / 9 } }, secret })
-// style: { '--frame-pos': …, '--frame-pos-md': … (same as base), '--frame-pos-lg': … }
+// payload.config.ts: imageFramingPlugin({ collections: ['media'], framing, usages })
+// the site: frameImage({ framing, frames: { base: …, lg: … }, … }) gives
+// --frame-pos, --frame-pos-md (the same as base) and --frame-pos-lg
 ```
 
-- `base` always applies; every other breakpoint from its `minWidth` up. A breakpoint without a frame of its own uses the next smaller one's, and the drawer marks its preview with "same as …".
-- The frames are typed from the config: `FrameRule<BreakpointName<typeof framing>>`, and `frames.xl` is a type error when `xl` isn't defined. Frame rules naming an unknown breakpoint also fail at startup.
-- Per-breakpoint crops (art direction) are not supported: a usage has one crop, and each breakpoint only picks the visible part of it.
+The frames are typed from the config (`FrameRule<BreakpointName<typeof framing>>`): a frame for an undefined breakpoint is a type error, and a frame rule naming one fails at startup. A usage has one crop; the breakpoints only choose the visible part of it. See [examples/breakpoints](examples/breakpoints).
 
-Apply the variables with the helpers, which use the configured widths:
+## Generated image sizes
 
-```ts
-import { framedImageClasses, framePositionCss } from '@wolffc/payload-image-framing/core'
+After a change to a media document's crop, focus area or file, the plugin rebuilds its generated image sizes from the crop area, under the file names Payload gave them:
 
-framePositionCss(framing, '.framed')
-// '.framed{object-position:var(--frame-pos)} @media (min-width:768px){.framed{object-position:var(--frame-pos-md)}} @media (min-width:1280px){…}'
-framePositionCss(framing, '.framed', { query: 'container' }) // @container queries instead
+- sizes with a fixed shape (`width` and `height`, e.g. a square thumbnail or a social image) show the part a frame of that shape picks around the focus area;
+- sizes with only a width or a height show the whole crop area at that size.
 
-framedImageClasses(framing)
-// 'object-[var(--frame-pos)] min-[768px]:object-[var(--frame-pos-md)] min-[1280px]:object-[var(--frame-pos-lg)]'
+So `og` images, admin thumbnails and anything else that reads `doc.sizes` show the crop. `rebuildSizes: false` (or a list of size names) leaves Payload's sizes alone, e.g. when the site only uses `frameImage`. To rebuild the sizes of existing media once, save each with `context: { imageFraming: { rebuild: true } }` ([script](examples/existing-project/scripts/regenerate-sizes.ts)).
+
+## The crop endpoint and caching
+
+`frameImage` points at a cropped copy served by the plugin, next to Payload's file route:
+
+```
+<api>/<collection>/crop/<id>/<rect>.<signature>/<filename>
+/api/media/crop/7/1000-0-8000-10000.Xy3k…/beach.jpg
 ```
 
-Tailwind only generates classes it finds in your source, so copy the class string into your code or safelist it. The variables don't care what switches them: with container queries, the frame follows the size of its container instead of the window.
+- The rect is in hundredths of a percent; the signature covers the media id, the rect and the media's `updatedAt`. So only URLs made by `frameImage` with the secret work, and a URL changes with every new version of the media.
+- Any rect inside the photo can be served, since a usage's crop may be wider than the media's; the signature keeps out made-up ones.
+- Responses are `Cache-Control: public, max-age=31536000, immutable`: what a URL shows never changes. Put a CDN in front of the route if you like.
+- Copies are cached in `.crops/` next to the uploads (or in the bucket, see [Storage](#storage)) and removed when the media changes or is deleted. Copies larger than `maxSize` on the long side are scaled down.
+- The route derives from the media `url`, so another collection slug, `routes.api` or an absolute `serverURL` need no options. For media whose `url` points elsewhere (e.g. straight to a bucket), pass `routePrefix: '/api/media/crop'` to `frameImage`; for another origin, `baseUrl`.
+- SVGs and other files that aren't raster images get no cropped copy.
 
-### Admin translations
+## Storage
 
-The editors' texts go through Payload's i18n, in English and German. They follow the admin language; add `de` to `i18n.supportedLanguages` in your Payload config to offer German. Override single texts, or add a language, with the plugin's `translations` option, by key from `translations.en`:
+By default the plugin reads originals from, and writes rebuilt sizes and cropped copies (in `.crops/`) to, the collection's `staticDir`.
+
+With a storage plugin (`@payloadcms/storage-*`, `disableLocalStorage`):
+
+- **S3, R2, MinIO**: `storage: s3FramingStorage({ bucket, config })` from `@wolffc/payload-image-framing/s3` (needs `@aws-sdk/client-s3`, which `@payloadcms/storage-s3` installs) reads and writes the bucket that `@payloadcms/storage-s3` uses: sizes are rebuilt in the bucket, cropped copies are cached under `image-framing-cache/<collection>/` and removed when the document changes or is deleted. See [examples/cloud-storage](examples/cloud-storage).
+- **Any other adapter**, without a `storage` option: the plugin reads originals through the collection's upload handlers (the storage plugin's; not registered with `disablePayloadAccessControl`), so the crop endpoint works, and caches cropped copies on local disk (the system's temp directory). It can't write to the bucket, so the image sizes stay made from the whole photo; it warns unless `rebuildSizes: false`.
+- **Your own backend**: implement `FramingStorage` (`readOriginal`, `writeSize`, `readCached`, `writeCached`, `clearCached`) and pass a factory `(collection, doc, req) => FramingStorage`.
+
+The plugin order doesn't matter: storage plugins upload the original in their `afterChange` hook, and the plugin moves its size rebuild after them when Payload starts. On hosts without a lasting disk (serverless), use a bucket cache or a CDN in front of the crop route.
+
+## Security
+
+- The crop endpoint only serves rects signed with the secret, so nobody can request arbitrary crops of your photos.
+- It serves a copy only to whoever may read the media document: the collection's read access applies, as for the file route.
+- The secret defaults to the Payload config's `secret`. It must stay on the server: call `frameImage` there, never in client code. For frontends without a server of their own, use `expose`.
+- Rotating the secret invalidates every cropped URL rendered before: dynamic pages get new ones on their next render, statically generated pages keep broken ones until they are rebuilt or revalidated.
+- The rects themselves never reach the browser, only the URL, sizes and positions derived from them.
+
+## Database and migrations
+
+The plugin adds to each framed collection the groups `crop` and `focusArea` (`x`, `y`, `width`, `height` in percent of the original), and to the parent of each usage's upload field an `imageFraming` group with the same two groups. It sets `upload.crop` and `upload.focalPoint` to `false`, which turns off Payload's crop tool; without image sizes, that also removes the `focalX`/`focalY` fields.
+
+- **SQL adapters** (Postgres, SQLite): create a migration after adding the plugin, or a usage (`npx payload migrate:create`). MongoDB needs none.
+- **Existing projects**: nothing to backfill. Media without rects show the whole photo, with a focus area around Payload's focal point; the rects are stored on the next save, and an optional [backfill script](examples/existing-project/scripts/backfill.ts) stores them at once. Photos cropped with Payload's tool before stay cropped: the cut-off parts are gone from the file. See [examples/existing-project](examples/existing-project).
+- **Removing the plugin**: `disabled: true` keeps the fields, so the schema stays the same, while hooks, endpoint and editors are gone. To remove it completely, delete it from the config and create a migration, which drops the stored crops; the generated sizes keep their last crop until regenerated, and pages that used cropped URLs fall back to whatever your code renders without `frameImage`.
+
+## Admin translations
+
+The editors' texts go through Payload's i18n, in English and German, and follow the admin language: add `de` to `i18n.supportedLanguages` to offer German. Override single texts, or add a language, with the `translations` option, by key from `translations.en`:
 
 ```ts
 imageFramingPlugin({
@@ -238,104 +340,7 @@ imageFramingPlugin({
 })
 ```
 
-Texts in your config's own `i18n.translations` under `imageFraming` win over the option. A supported language without texts of its own gets the English ones. Labels you pass in (breakpoint labels, preview shape labels, a usage's `label` and `admin.description`) take a string or one per language, like Payload's: `{ en: 'Tablet', de: 'Tablet' }`.
-
-### Cropped-copy URLs
-
-`frameImage` serves a cropped photo from the plugin's route next to Payload's file route: a media `url` of `/api/media/file/beach.jpg` gives `/api/media/crop/<id>/<rect>.<signature>/beach.jpg`. So a collection with another slug, a custom `routes.api` or an absolute `serverURL` need no options. Two options cover other setups:
-
-- `routePrefix`: where the crop route is, e.g. `'/api/images/crop'`, for media whose `url` isn't Payload's file route (a storage adapter serving straight from a bucket). Without it, `frameImage` throws for such media when it needs a cropped copy.
-- `baseUrl`: serve the cropped copies from another origin, e.g. a CDN in front of Payload (`'https://cdn.example.com'`).
-
-With `next/image`, allow the crop route next to the file route in `next.config`:
-
-```js
-images: {
-  localPatterns: [{ pathname: '/api/media/file/**' }, { pathname: '/api/media/crop/**' }],
-  // or, with an absolute serverURL or a CDN:
-  // remotePatterns: [{ protocol: 'https', hostname: 'cms.example.com', pathname: '/api/media/crop/**' }],
-}
-```
-
-### Storage
-
-By default the plugin reads originals from, and writes rebuilt sizes and cropped copies (in `.crops/`) to, the collection's `staticDir`.
-
-With a storage plugin (`@payloadcms/storage-*`, `disableLocalStorage`):
-
-- **S3, R2, MinIO**: `storage: s3FramingStorage({ bucket, config })` from `@wolffc/payload-image-framing/s3` reads and writes the bucket that `@payloadcms/storage-s3` uses: sizes are rebuilt in the bucket, cropped copies are cached under `image-framing-cache/<collection>/` and removed when the document changes or is deleted. See [examples/cloud-storage](examples/cloud-storage).
-- **Any other adapter**, without a `storage` option: the plugin reads originals through the collection's upload handlers (the storage plugin's; not registered with `disablePayloadAccessControl`), so the crop endpoint works, and caches cropped copies on local disk (the system's temp directory). It can't write to the bucket, so the image sizes stay made from the whole photo; it warns unless `rebuildSizes: false`.
-- **Your own backend**: implement `FramingStorage` (`readOriginal`, `writeSize`, `readCached`, `writeCached`, `clearCached`) and pass a factory `(collection, doc, req) => FramingStorage`.
-
-The plugin order doesn't matter: storage plugins upload the original in their `afterChange` hook, and the plugin moves its size rebuild after them when Payload starts. Without a cache that survives deploys (e.g. on serverless hosts), put a CDN in front of the crop route: its responses are immutable, so a CDN can keep them forever.
-
-### The secret
-
-The plugin signs cropped-copy URLs with the Payload config's `secret` unless you pass `secret` to the plugin. `frameImage` needs the same value, so call it on the server only. Changing the secret invalidates every cropped URL rendered before: dynamic pages get new ones on their next render, statically generated pages keep the old, now broken, URLs until they are rebuilt or revalidated.
-
-The plugin:
-
-- adds `crop` and `focusArea` groups (`x`, `y`, `width`, `height` in percent of the original) and an editor to each collection, and sets `upload.crop` and `upload.focalPoint` to `false`;
-- validates the rects before each save, fills in defaults (the whole photo; a 30% focus area around `focalX`/`focalY`) and keeps `focalX`/`focalY` on the centre of the focus area;
-- rebuilds every generated image size from the crop area after a change, under the file names Payload gave them (fixed-shape sizes are framed around the focus area);
-- serves cropped copies at `<api>/<collection>/crop/<id>/<rect>.<signature>/<filename>`, for any rect inside the photo, to whoever may read the media document. The signature covers the id, the rect and `updatedAt`, so only URLs made by `frameImage` work, they change with every new version, and they can be cached forever. Copies are cached in `.crops/` next to the uploads.
-
-For every entry in `usages` it also adds an `imageFraming` group (`crop`, `focusArea`) right after that upload field, with a drawer that edits it on the whole photo (the media crop outlined as the default) and previews the result in the usage's frames (the first `frames` rule whose `when` matches the sibling fields), with the covered parts hatched. It throws when a usage path matches no upload field, so a rename can't silently drop the overrides. Uploads inside Lexical rich text are not reachable and use the media framing.
-
-### Plugin options
-
-Every option is optional except `collections`; the defaults are the behaviour without it.
-
-| Option            | Type                                                                 | Default                                                                  | Description                                                                                                                                                                                                |
-| ----------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `collections`     | `CollectionSlug[]` or `{ [slug]: true \| CollectionFramingOptions }` | (required)                                                               | Upload collections that get a crop and a focus area. The object form takes per-collection options, which replace the plugin-wide ones below.                                                               |
-| `previewShapes`   | `PreviewShape[]`                                                     | `DEFAULT_PREVIEW_SHAPES` (16:9, 3:2, 4:3, 21:9, 4:5, 1:1, 1200×630)      | Shapes the media editor previews. Plugin-wide or per collection.                                                                                                                                           |
-| `storage`         | `(collection, doc) => FramingStorage`                                | `localDiskStorage` on the collection's `staticDir`                       | File access for the size rebuild and the cropped copies. Plugin-wide or per collection.                                                                                                                    |
-| `rebuildSizes`    | `boolean \| string[]`                                                | `true`                                                                   | Which generated image sizes are rebuilt from the crop: all, none (`false`: Payload's sizes stay made from the whole photo), or the listed size names. Plugin-wide or per collection.                       |
-| `endpoint`        | `false \| { path?: string; cacheControl?: string }`                  | `{ path: '/crop', cacheControl: 'public, max-age=31536000, immutable' }` | The cropped-copy endpoint. `false` leaves it out (e.g. an image service crops from the signed rect); with another `path`, pass `routePrefix` to `frameImage`. Plugin-wide or per collection.               |
-| `maxSize`         | `number`                                                             | `4000`                                                                   | The longest side of a cropped copy in pixels; larger crops are scaled down. Pass the same value to `frameImage`. Plugin-wide or per collection.                                                            |
-| `access`          | `{ create?, read?, update? }` (field access functions)               | none                                                                     | Field access for the added fields: `crop`, `focusArea` and the usage groups. The editors follow it: read-only without update access, hidden without read access. Plugin-wide, per collection or per usage. |
-| `secret`          | `string`                                                             | the Payload config's `secret`                                            | Signs the cropped-copy URLs; `frameImage` needs the same value.                                                                                                                                            |
-| `usages`          | `{ [path]: UsageOptions }`                                           | `{}`                                                                     | Upload fields that get their own crop and focus area (see below).                                                                                                                                          |
-| `framing`         | `FramingConfig` from `defineFraming`                                 | `base` + `md` from 768 px                                                | The breakpoints the usage drawer previews; pass the same config to `frameImage`.                                                                                                                           |
-| `translations`    | `{ [language]: { [key]: string } }`                                  | English and German                                                       | Admin texts to override or add, by key; see Admin translations.                                                                                                                                            |
-| `editorPath`      | `string`                                                             | `'@wolffc/payload-image-framing/client#FramingEditor'`                   | Component path of the media editor, to use your own.                                                                                                                                                       |
-| `usageEditorPath` | `string`                                                             | `'@wolffc/payload-image-framing/client#UsageFramingField'`               | Component path of the usage editor, to use your own.                                                                                                                                                       |
-| `disabled`        | `boolean`                                                            | `false`                                                                  | Turns the plugin off but keeps its fields, so the database stays the same: no hooks, endpoint or editors.                                                                                                  |
-
-`UsageOptions`, per entry in `usages`:
-
-| Option              | Type                                 | Default                  | Description                                                                                                                                 |
-| ------------------- | ------------------------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `frames`            | `FrameRule[]`                        | `[]`                     | The frames the usage shows the photo in, per breakpoint: the first rule whose `when` matches the sibling fields. For the drawer's previews. |
-| `name`              | `string`                             | `'imageFraming'`         | Name of the group next to the upload field that stores the usage's crop and focus area.                                                     |
-| `label`             | `string` or `{ [language]: string }` | 'Framing for this usage' | Title of the usage's drawer.                                                                                                                |
-| `admin.description` | `string` or `{ [language]: string }` | none                     | Shown under the usage's framing summary and in its drawer.                                                                                  |
-| `expose`            | `boolean` or `{ name?: string }`     | `false`                  | Adds a virtual field with the computed framing for headless frontends (see Rendering).                                                      |
-| `access`            | `{ create?, read?, update? }`        | the plugin's `access`    | Field access for the usage's group.                                                                                                         |
-
-The plugin checks its configuration at startup and throws with the reason when a collection in `collections` doesn't exist or isn't an upload collection; a framed collection already has a field named `framing`, `crop` or `focusArea` (the media fields can't be renamed, since `frameImage` reads them); a usage's group name is taken on its level; a usage path matches no upload field, or one with several `relationTo` collections, `hasMany`, or a collection without framing; a frame rule names an undefined breakpoint; or `sharp` or the secret is missing.
-
-The size of a default focus area (30 % of each side, around Payload's focal point) and the smallest crop or focus area (1 %) are fixed: `frameImage` and the editors apply the same defaults without knowing the plugin's options.
-
-### Usage paths
-
-A key in `usages` names an upload field by its data path:
-
-| Path                        | Upload field                                                                                                                          |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `pages.image`               | `image` at the top of the `pages` collection                                                                                          |
-| `pages.hero.image`          | in the `hero` group, or the named tab `hero`                                                                                          |
-| `pages.items.image`         | in every row of the `items` array                                                                                                     |
-| `header.logo`               | in the `header` global                                                                                                                |
-| `block:card.image`          | in the `card` block, wherever it is used: in a `blocks` field, a nested block, or through `blockReferences` and the config's `blocks` |
-| `block:gallery.items.image` | in the `items` array of the `gallery` block                                                                                           |
-
-Unnamed tabs, rows and collapsibles don't count, since they don't nest the data. The usage's group is stored next to the upload field and has the same localization: a localized upload field gets a localized group, unless a parent is already localized.
-
-## Examples
-
-[examples/](examples) has runnable apps and focused snippets: [quick start](examples/quick-start), [per-usage overrides with frame rules and cover areas](examples/usage-overrides), [custom breakpoints](examples/breakpoints), [adding the plugin to an existing project](examples/existing-project), [cloud storage](examples/cloud-storage), [without Next.js](examples/without-next), [several collections and a custom API route](examples/multiple-collections) and [headless frontends](examples/headless).
+Texts in your config's own `i18n.translations` under `imageFraming` win over the option. A supported language without texts of its own gets the English ones. Labels you pass in (breakpoints, preview shapes, a usage's `label` and `admin.description`) take a string or one per language, like Payload's labels.
 
 ## Limitations
 
@@ -345,17 +350,49 @@ Unnamed tabs, rows and collapsibles don't count, since they don't nest the data.
 - **Animated GIFs and WebPs** stay animated: every frame is cropped the same way.
 - **Localized usages need Payload 3.80 or later.** Before 3.80, Payload shares the values of a group nested in a localized group between locales, and a usage's group nests its crop and focus area.
 - **One crop per usage**: breakpoints only choose the visible part of it; per-breakpoint crops (art direction) aren't supported.
-- **Cropped copies are capped** at 4000 px on the long side (`maxSize`), since image components resize them anyway. Changing `maxSize` doesn't change the URLs: purge a CDN in front of the crop route.
+- **Cropped copies are capped** at 4000 px on the long side (`maxSize`). Changing `maxSize` doesn't change the URLs: purge a CDN in front of the crop route.
 - **Quick saves** of one document rebuild its sizes in save order within one server process. With several processes saving the same image at the same moment, the last write wins.
-- **Storage adapters other than S3** can't have their sizes rebuilt in the bucket by default (see Storage).
+- **Storage adapters other than S3** can't have their sizes rebuilt in the bucket by default (see [Storage](#storage)).
 
-## Payload internals this depends on
+## Compatibility
 
-The admin editors use only exported `@payloadcms/ui` hooks and components: `useField`, `useFormFields`, `useConfig`, `useModal`, `useDrawerSlug`, `Drawer`, `DrawerToggler`, `FieldLabel`, and Payload's `btn` CSS classes. Beyond the public API, the plugin relies on:
+The package supports Payload `^3.39.0`. CI tests the lowest supported version and the latest on every change, on Postgres, SQLite and MongoDB, and a weekly run tries Payload's newest release. A new Payload 3 minor that breaks the plugin gets a patch release; raising the lowest supported Payload version is a minor release and listed in the changelog. Payload 4 will get a new major version of this package.
 
-- the form state containing the base upload fields `url` and `mimeType` (the editor's preview);
-- `payload.db.updateOne` keeping a passed `updatedAt` (the rebuilt sizes are saved without a new version; Payload 3.39 sets a new one, and the plugin then returns the stored value from the save);
+Beyond Payload's public API, the plugin relies on:
+
+- the admin form state holding the upload fields `url`, `mimeType`, `width` and `height` (the editor's preview);
+- `payload.db.updateOne` storing the rebuilt sizes without a new version (Payload 3.39 sets a new `updatedAt` anyway; the plugin returns the stored one);
 - the generated sizes' `filename` in `doc.sizes`, which it overwrites;
-- the REST route `<api>/<collection>/<id>?depth=0`, which the usage drawer reads the media document from.
+- the REST route `<api>/<collection>/<id>?depth=0`, from which the usage drawer reads the media document;
+- `@payloadcms/plugin-cloud-storage` uploading in `afterChange` and registering its `staticHandler` in `upload.handlers`.
 
-Check these after a Payload upgrade; the integration tests cover them on every database adapter, and a weekly CI run tries Payload's latest release.
+The integration tests cover these on every database adapter.
+
+## Troubleshooting
+
+| Problem                                                                      | Cause and fix                                                                                                                                                                                                                                            |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The media editor or the usage's "Adjust the framing" doesn't show            | The import map lacks the editors: run `npx payload generate:importmap` and restart. `importMap.js` must list `@wolffc/payload-image-framing/client#FramingEditor`.                                                                                       |
+| `imageFraming: set sharp in the Payload config`                              | Add `sharp` (`import sharp from 'sharp'`) to `buildConfig`.                                                                                                                                                                                              |
+| `imageFraming: no upload field found for usage "…"`                          | The path doesn't match: check the collection or block slug and the named groups, arrays and tabs on the way (see [Usage paths](#usage-paths)); unnamed tabs, rows and collapsibles don't count.                                                          |
+| A cropped URL answers 404                                                    | `frameImage` got another secret than the plugin; or the page was rendered from an older version of the media (the signature includes `updatedAt`: revalidate it); or the visitor may not read the media (collection read access); or the file is an SVG. |
+| `next/image`: "url … is not configured under images" or hostname not allowed | Add the crop route to `images.localPatterns` (`/api/<collection>/crop/**`), or to `remotePatterns` with an absolute `serverURL` or `baseUrl`.                                                                                                            |
+| `frameImage: can't tell where the cropped copies … are served`               | The media `url` isn't Payload's file route (a bucket URL, `disablePayloadAccessControl`): pass `routePrefix`, e.g. `'/api/media/crop'`.                                                                                                                  |
+| Image sizes aren't rebuilt, a warning says the storage can't write           | A storage plugin keeps the files elsewhere: use `s3FramingStorage` for S3, R2 or MinIO, or implement `FramingStorage` with `writeSize`; or set `rebuildSizes: false`.                                                                                    |
+| A localized usage's crop changes in every locale                             | Payload before 3.80: upgrade (see [Limitations](#limitations)).                                                                                                                                                                                          |
+
+## Examples
+
+[examples/](examples) has runnable apps and focused snippets: [quick start](examples/quick-start), [per-usage overrides with frame rules and cover areas](examples/usage-overrides), [custom breakpoints](examples/breakpoints), [adding the plugin to an existing project](examples/existing-project), [cloud storage](examples/cloud-storage), [without Next.js](examples/without-next), [several collections and a custom API route](examples/multiple-collections) and [headless frontends](examples/headless).
+
+## Contributing
+
+Development runs in Docker, with a Payload + Next dev app, unit, integration and end-to-end tests: see [CONTRIBUTING.md](CONTRIBUTING.md). Changes are listed in [CHANGELOG.md](CHANGELOG.md).
+
+## License
+
+MIT, see [LICENSE](LICENSE).
+
+## Credits
+
+Built for [weflyhome.com](https://weflyhome.com), where it frames every photo, and extracted with its history.

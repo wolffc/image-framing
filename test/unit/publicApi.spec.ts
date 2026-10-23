@@ -19,7 +19,8 @@ const entries = Object.fromEntries(
   Object.entries(pkg.exports).map(([entry, { types }]) => [entry, path.join(root, types)]),
 )
 
-const exportedNames = (): Record<string, string[]> => {
+/** Every exported symbol of every entry point, by entry, as the TypeScript compiler sees it. */
+const exportsByEntry = () => {
   const program = ts.createProgram(Object.values(entries), {
     jsx: ts.JsxEmit.ReactJSX,
     module: ts.ModuleKind.NodeNext,
@@ -30,23 +31,30 @@ const exportedNames = (): Record<string, string[]> => {
   })
   const checker = program.getTypeChecker()
 
-  return Object.fromEntries(
-    Object.entries(entries).map(([entry, file]) => {
-      const source = program.getSourceFile(file)
-      const moduleSymbol = source && checker.getSymbolAtLocation(source)
-      if (!moduleSymbol) throw new Error(`Cannot read ${file}`)
-      const names = checker.getExportsOfModule(moduleSymbol).map((symbol) => {
-        const target =
-          symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol
-        return target.flags & ts.SymbolFlags.Value ? symbol.name : `type ${symbol.name}`
-      })
-      return [
-        entry,
-        names.sort((a, b) => a.replace('type ', '').localeCompare(b.replace('type ', ''))),
-      ]
-    }),
-  )
+  return Object.entries(entries).map(([entry, file]) => {
+    const source = program.getSourceFile(file)
+    const moduleSymbol = source && checker.getSymbolAtLocation(source)
+    if (!moduleSymbol) throw new Error(`Cannot read ${file}`)
+    const symbols = checker.getExportsOfModule(moduleSymbol).map((symbol) => {
+      const target = symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol
+      return {
+        documented: ts.displayPartsToString(target.getDocumentationComment(checker)).trim() !== '',
+        name: target.flags & ts.SymbolFlags.Value ? symbol.name : `type ${symbol.name}`,
+      }
+    })
+    return { entry, symbols }
+  })
 }
+
+const exportedNames = (): Record<string, string[]> =>
+  Object.fromEntries(
+    exportsByEntry().map(({ entry, symbols }) => [
+      entry,
+      symbols
+        .map(({ name }) => name)
+        .sort((a, b) => a.replace('type ', '').localeCompare(b.replace('type ', ''))),
+    ]),
+  )
 
 describe('public API', () => {
   it('exports these names from each entry point', () => {
@@ -163,5 +171,14 @@ describe('public API', () => {
         ],
       }
     `)
+  }, 60_000)
+
+  // Editors show these comments, and the README links to the API.
+  it('documents every export with a comment', () => {
+    const undocumented = exportsByEntry().flatMap(({ entry, symbols }) =>
+      symbols.filter((symbol) => !symbol.documented).map(({ name }) => `${entry}: ${name}`),
+    )
+
+    expect(undocumented).toEqual([])
   }, 60_000)
 })

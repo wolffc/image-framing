@@ -13,6 +13,7 @@ import {
 } from '../core/index.js'
 import { frameImage, type FrameImageOptions } from '../server/frameImage.js'
 
+/** Props of `<FramedImage>`: `frameImage`'s options, `next/image`'s props and the box's. */
 export type FramedImageProps<K extends string = DefaultBreakpoint> = FrameImageOptions<K> &
   Omit<ImageProps, 'alt' | 'fill' | 'height' | 'src' | 'width'> & {
     /** Default: the media's `alt`. */

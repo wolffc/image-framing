@@ -12,6 +12,7 @@ type SizeData = {
   mimeType?: string | null
   width?: number | null
 }
+/** A document of a framed upload collection, as the hooks and storages see it. */
 export type MediaDoc = TypeWithID &
   Partial<FileData> & { sizes?: Record<string, SizeData | undefined> | null; updatedAt?: string }
 

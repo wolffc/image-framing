@@ -12,6 +12,7 @@ import {
 
 import { useFramingTranslation } from './i18n.js'
 
+/** One preview of `PreviewStrip`: a frame and its caption. */
 export interface PreviewFrame {
   /** Stable key, also `data-framing-preview` for tests. */
   key: string

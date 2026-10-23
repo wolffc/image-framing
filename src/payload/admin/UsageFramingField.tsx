@@ -40,6 +40,7 @@ interface MediaDoc {
   width?: number | null
 }
 
+/** Props of `UsageFramingField`, set by the plugin (`clientProps`) and by Payload. */
 export interface UsageFramingFieldProps {
   /** Frame rules of this usage, matched against its sibling fields. */
   frames?: FrameRule<string>[]

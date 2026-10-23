@@ -45,6 +45,7 @@ export interface FramedResource {
   width?: number | null
 }
 
+/** Options of `frameImage`. */
 export interface FrameImageOptions<K extends string = DefaultBreakpoint> {
   media: FrameableMedia
   /**
@@ -87,6 +88,7 @@ export interface FrameImageOptions<K extends string = DefaultBreakpoint> {
   variable?: string
 }
 
+/** What `frameImage` returns: the image to show and how to place it. */
 export interface FrameImageResult {
   resource: FramedResource
   style: Record<string, string>
@@ -113,6 +115,7 @@ export const cropRoutePrefix = (media: Pick<FrameableMedia, 'url'>): string | nu
   return match ? `${match[1]}/crop` : null
 }
 
+/** Options of `cropUrl`. */
 export interface CropUrlOptions {
   /** See `FrameImageOptions.routePrefix`. */
   routePrefix?: string
