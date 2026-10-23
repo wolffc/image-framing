@@ -1,6 +1,6 @@
 'use client'
 
-import { FULL_RECT, visibleRect } from '@wolffc/payload-image-framing/core'
+import { FULL_RECT, visibleRect } from '@wolffc80/payload-image-framing/core'
 
 // The core entry in a client component, as a site's admin or frontend code would use it.
 export function FramePreview() {

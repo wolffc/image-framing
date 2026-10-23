@@ -1,7 +1,7 @@
 import config from '@payload-config'
-import { type FramingOverride, matchFrames } from '@wolffc/payload-image-framing/core'
-import { FramedImage } from '@wolffc/payload-image-framing/next'
-import type { FrameableMedia } from '@wolffc/payload-image-framing/server'
+import { type FramingOverride, matchFrames } from '@wolffc80/payload-image-framing/core'
+import { FramedImage } from '@wolffc80/payload-image-framing/next'
+import type { FrameableMedia } from '@wolffc80/payload-image-framing/server'
 import { getPayload } from 'payload'
 
 import { ctaFrames, headerFrames } from '../../frames'

@@ -21,9 +21,9 @@ import {
 import sharp from 'sharp'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { imageFramingPlugin } from '@wolffc/payload-image-framing'
-import { frameImage } from '@wolffc/payload-image-framing/server'
-import { s3FramingStorage } from '@wolffc/payload-image-framing/s3'
+import { imageFramingPlugin } from '@wolffc80/payload-image-framing'
+import { frameImage } from '@wolffc80/payload-image-framing/server'
+import { s3FramingStorage } from '@wolffc80/payload-image-framing/s3'
 
 /**
  * Cloud storage: `@payloadcms/storage-s3` keeps the files in a bucket

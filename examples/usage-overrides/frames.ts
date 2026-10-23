@@ -1,4 +1,4 @@
-import type { FrameRule } from '@wolffc/payload-image-framing/core'
+import type { FrameRule } from '@wolffc80/payload-image-framing/core'
 
 /**
  * Which frames each usage shows its photo in, by the values of the fields next

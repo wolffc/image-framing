@@ -1,5 +1,5 @@
-import { defineFraming } from '@wolffc/payload-image-framing/core'
-import { FramedImage } from '@wolffc/payload-image-framing/next'
+import { defineFraming } from '@wolffc80/payload-image-framing/core'
+import { FramedImage } from '@wolffc80/payload-image-framing/next'
 
 const framing = defineFraming({ breakpoints: { base: {}, lg: { minWidth: 1280 } } })
 

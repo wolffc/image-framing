@@ -1,5 +1,5 @@
 /**
- * `@wolffc/payload-image-framing/s3`: framing storage on an S3-compatible
+ * `@wolffc80/payload-image-framing/s3`: framing storage on an S3-compatible
  * bucket (AWS S3, Cloudflare R2, MinIO, …), next to `@payloadcms/storage-s3`.
  * Needs `@aws-sdk/client-s3`, which `@payloadcms/storage-s3` installs.
  */

@@ -4,7 +4,7 @@ import fs from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 
-import { cropUrl, frameImage } from '@wolffc/payload-image-framing/server'
+import { cropUrl, frameImage } from '@wolffc80/payload-image-framing/server'
 import { getPayload, handleEndpoints, type Payload, type SanitizedConfig } from 'payload'
 import sharp from 'sharp'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'

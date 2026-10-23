@@ -30,9 +30,9 @@ import { addUsages, type UsageOptions } from './usages.js'
  * Where the admin editors live, as Payload component paths. They resolve
  * through the import map, so run `payload generate:importmap` after installing.
  */
-export const DEFAULT_EDITOR_PATH = '@wolffc/payload-image-framing/client#FramingEditor'
+export const DEFAULT_EDITOR_PATH = '@wolffc80/payload-image-framing/client#FramingEditor'
 /** Where the usage editor lives, as a Payload component path (see `DEFAULT_EDITOR_PATH`). */
-export const DEFAULT_USAGE_EDITOR_PATH = '@wolffc/payload-image-framing/client#UsageFramingField'
+export const DEFAULT_USAGE_EDITOR_PATH = '@wolffc80/payload-image-framing/client#UsageFramingField'
 
 /** The frame shapes the media editor previews: the shapes sites commonly crop to. */
 export const DEFAULT_PREVIEW_SHAPES: PreviewShape[] = [
@@ -66,7 +66,7 @@ export interface CollectionFramingOptions {
    * collection's `staticDir` on local disk (`localDiskStorage`), or, with a
    * storage plugin (`disableLocalStorage`), reading through its handlers
    * without rebuilding sizes (`handlerStorage`). For S3, R2 or MinIO use
-   * `s3FramingStorage` from `@wolffc/payload-image-framing/s3`.
+   * `s3FramingStorage` from `@wolffc80/payload-image-framing/s3`.
    */
   storage?: FramingStorageFactory
   /**

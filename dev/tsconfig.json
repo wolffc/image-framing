@@ -9,11 +9,11 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@payload-config": ["./payload.config.ts"],
-      "@wolffc/payload-image-framing": ["../src/index.ts"],
-      "@wolffc/payload-image-framing/client": ["../src/exports/client.ts"],
-      "@wolffc/payload-image-framing/core": ["../src/core/index.ts"],
-      "@wolffc/payload-image-framing/next": ["../src/next/index.ts"],
-      "@wolffc/payload-image-framing/server": ["../src/exports/server.ts"]
+      "@wolffc80/payload-image-framing": ["../src/index.ts"],
+      "@wolffc80/payload-image-framing/client": ["../src/exports/client.ts"],
+      "@wolffc80/payload-image-framing/core": ["../src/core/index.ts"],
+      "@wolffc80/payload-image-framing/next": ["../src/next/index.ts"],
+      "@wolffc80/payload-image-framing/server": ["../src/exports/server.ts"]
     }
   },
   "include": [

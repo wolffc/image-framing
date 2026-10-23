@@ -9,8 +9,8 @@ import type {
 } from 'payload'
 import { describe, expect, it } from 'vitest'
 
-import { DEFAULT_FRAMING, defineFraming } from '@wolffc/payload-image-framing/core'
-import { cropToken } from '@wolffc/payload-image-framing/server'
+import { DEFAULT_FRAMING, defineFraming } from '@wolffc80/payload-image-framing/core'
+import { cropToken } from '@wolffc80/payload-image-framing/server'
 import { fieldAccess } from '../../src/payload/admin/permissions.js'
 import {
   DEFAULT_CACHE_CONTROL,
@@ -18,7 +18,7 @@ import {
   type FramingStorage,
   imageFramingPlugin,
   type ImageFramingPluginOptions,
-} from '@wolffc/payload-image-framing'
+} from '@wolffc80/payload-image-framing'
 
 /**
  * How the plugin changes the Payload config: the media fields, hooks and

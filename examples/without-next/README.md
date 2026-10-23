@@ -1,6 +1,6 @@
 # Without Next.js
 
-`frameImage` (`@wolffc/payload-image-framing/server`) needs neither Next.js nor
+`frameImage` (`@wolffc80/payload-image-framing/server`) needs neither Next.js nor
 Payload: a media document from Payload's API, the usage's override, the frames
 and the secret are enough. It runs on any server; the secret must stay there.
 

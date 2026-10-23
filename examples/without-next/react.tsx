@@ -6,8 +6,8 @@ import {
   type FramingConfig,
   type FramingOverride,
   matchFrames,
-} from '@wolffc/payload-image-framing/core'
-import { type FrameableMedia, frameImage } from '@wolffc/payload-image-framing/server'
+} from '@wolffc80/payload-image-framing/core'
+import { type FrameableMedia, frameImage } from '@wolffc80/payload-image-framing/server'
 import type { CSSProperties } from 'react'
 
 /**

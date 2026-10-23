@@ -2,7 +2,7 @@
 
 /**
  * The admin components. Payload loads them by component path
- * (`@wolffc/payload-image-framing/client#FramingEditor`), listed in the import
+ * (`@wolffc80/payload-image-framing/client#FramingEditor`), listed in the import
  * map that `payload generate:importmap` writes.
  */
 export { FramingCanvas, type FramingCanvasProps } from '../payload/admin/FramingCanvas.js'

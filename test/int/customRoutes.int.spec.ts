@@ -14,8 +14,8 @@ import {
 import sharp from 'sharp'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { imageFramingPlugin } from '@wolffc/payload-image-framing'
-import { frameImage } from '@wolffc/payload-image-framing/server'
+import { imageFramingPlugin } from '@wolffc80/payload-image-framing'
+import { frameImage } from '@wolffc80/payload-image-framing/server'
 
 /**
  * A project that shares nothing with weflyhome.com's setup: the upload

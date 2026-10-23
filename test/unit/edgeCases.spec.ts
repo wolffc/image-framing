@@ -10,9 +10,9 @@ import type {
 } from 'payload'
 import { describe, expect, it } from 'vitest'
 
-import { croppedSize, DEFAULT_MAX_SIZE, isFramable } from '@wolffc/payload-image-framing/core'
-import { cropToken, frameImage } from '@wolffc/payload-image-framing/server'
-import { type FramingStorage, imageFramingPlugin } from '@wolffc/payload-image-framing'
+import { croppedSize, DEFAULT_MAX_SIZE, isFramable } from '@wolffc80/payload-image-framing/core'
+import { cropToken, frameImage } from '@wolffc80/payload-image-framing/server'
+import { type FramingStorage, imageFramingPlugin } from '@wolffc80/payload-image-framing'
 
 /**
  * What a single site never hit: SVGs, very large originals, quick saves,

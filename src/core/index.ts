@@ -1,5 +1,5 @@
 /**
- * `@wolffc/payload-image-framing/core`: the framing model and algorithm, in
+ * `@wolffc80/payload-image-framing/core`: the framing model and algorithm, in
  * plain TypeScript. No Payload, React, Next or Node imports, so it runs in the
  * browser, on the server and in tests unchanged.
  */

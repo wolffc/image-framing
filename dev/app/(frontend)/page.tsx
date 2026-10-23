@@ -7,8 +7,8 @@ import {
   framePositionCss,
   matchFrames,
   resolveFrames,
-} from '@wolffc/payload-image-framing/core'
-import { type FrameableMedia, frameImage } from '@wolffc/payload-image-framing/server'
+} from '@wolffc80/payload-image-framing/core'
+import { type FrameableMedia, frameImage } from '@wolffc80/payload-image-framing/server'
 import Link from 'next/link'
 import { getPayload } from 'payload'
 

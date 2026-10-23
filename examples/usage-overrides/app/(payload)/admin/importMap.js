@@ -1,10 +1,10 @@
-import { FramingEditor as FramingEditor_51cd268c8c3450591148946b07bf2736 } from '@wolffc/payload-image-framing/client'
-import { UsageFramingField as UsageFramingField_51cd268c8c3450591148946b07bf2736 } from '@wolffc/payload-image-framing/client'
+import { FramingEditor as FramingEditor_1ad9b1895c4bb400314b163aa33e1c83 } from '@wolffc80/payload-image-framing/client'
+import { UsageFramingField as UsageFramingField_1ad9b1895c4bb400314b163aa33e1c83 } from '@wolffc80/payload-image-framing/client'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
 export const importMap = {
-  "@wolffc/payload-image-framing/client#FramingEditor": FramingEditor_51cd268c8c3450591148946b07bf2736,
-  "@wolffc/payload-image-framing/client#UsageFramingField": UsageFramingField_51cd268c8c3450591148946b07bf2736,
+  "@wolffc80/payload-image-framing/client#FramingEditor": FramingEditor_1ad9b1895c4bb400314b163aa33e1c83,
+  "@wolffc80/payload-image-framing/client#UsageFramingField": UsageFramingField_1ad9b1895c4bb400314b163aa33e1c83,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }
