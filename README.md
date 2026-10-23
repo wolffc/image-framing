@@ -395,4 +395,4 @@ MIT, see [LICENSE](LICENSE).
 
 ## Credits
 
-Built for [weflyhome.com](https://weflyhome.com), where it frames every photo, and extracted with its history.
+Built for [weflyhome.com](https://weflyhome.com) and extracted from it with its history.
