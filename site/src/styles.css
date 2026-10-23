@@ -592,7 +592,6 @@ button {
 .readout td {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 .readout tbody td:last-child {
