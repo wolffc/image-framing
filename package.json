@@ -93,6 +93,7 @@
   "devDependencies": {
     "@payloadcms/db-sqlite": "3.91.0",
     "@payloadcms/next": "3.91.0",
+    "@payloadcms/translations": "3.91.0",
     "@payloadcms/ui": "3.91.0",
     "@swc/cli": "0.8.1",
     "@swc/core": "1.16.18",

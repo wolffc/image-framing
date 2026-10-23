@@ -1,4 +1,5 @@
 import type { Frame } from './frame.js'
+import type { Label } from './label.js'
 
 /**
  * Responsive breakpoints, mobile first: `base` always applies, every other
@@ -11,8 +12,11 @@ import type { Frame } from './frame.js'
 export interface Breakpoint {
   /** Where the breakpoint starts, in CSS pixels. `base` has none: it applies below the first. */
   minWidth?: number
-  /** Name of the breakpoint in the admin previews, e.g. 'Tablet'. */
-  label?: string
+  /**
+   * Name of the breakpoint in the admin previews, e.g. 'Tablet' or
+   * `{ en: 'Tablet', de: 'Tablet' }`. Without one the admin says "md (from 768 px)".
+   */
+  label?: Label
 }
 
 /** One breakpoint of a `FramingConfig`, as plain data (it is passed to the admin). */
@@ -20,7 +24,7 @@ export interface BreakpointInfo<K extends string = string> {
   name: K
   /** 0 for `base`. */
   minWidth: number
-  label: string
+  label?: Label
 }
 
 /**
@@ -46,9 +50,6 @@ export type Frames<K extends string = DefaultBreakpoint> = { base: Frame } & {
 export type BreakpointName<F> = F extends FramingConfig<infer K> ? K : never
 
 const NAME = /^[A-Za-z][\w-]*$/
-
-const defaultLabel = (name: string, minWidth: number) =>
-  name === 'base' ? 'Base' : `${name} (from ${minWidth} px)`
 
 /**
  * Checks and orders the breakpoints. Names become CSS variable suffixes
@@ -89,7 +90,7 @@ export const defineFraming = <const B extends { base: Breakpoint } & Record<stri
     return {
       name: name as keyof B & string,
       minWidth: width,
-      label: label ?? defaultLabel(name, width),
+      ...(label ? { label } : {}),
     }
   })
 
@@ -102,7 +103,10 @@ export const defineFraming = <const B extends { base: Breakpoint } & Record<stri
 
 /** Phones (`base`) and, from 768 px, `md`: the breakpoints before they were configurable. */
 export const DEFAULT_FRAMING: FramingConfig = defineFraming({
-  breakpoints: { base: { label: 'Phones' }, md: { minWidth: 768, label: 'Desktop' } },
+  breakpoints: {
+    base: { label: { en: 'Phones', de: 'Smartphones' } },
+    md: { minWidth: 768, label: { en: 'Desktop', de: 'Desktop' } },
+  },
 })
 
 export interface ResolvedFrame<K extends string = string> {

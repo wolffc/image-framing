@@ -30,6 +30,7 @@ export {
   visibleRect,
   type VisibleRectInput,
 } from './frame.js'
+export { type Label, labelText } from './label.js'
 export {
   DEFAULT_FOCUS_SIZE,
   defaultFocusArea,

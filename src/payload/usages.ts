@@ -5,12 +5,14 @@ import {
   type FrameRule,
   type FramingConfig,
   type FramingOverride,
+  type Label,
   FULL_RECT,
   isCompleteRect,
   normalizeRect,
 } from '../core/index.js'
 
 import { dataNames, type FramingAccess, rectField } from './fields.js'
+import { fieldLabel } from './i18n.js'
 
 /** What the site tells the plugin about one usage of an image. */
 export interface UsageOptions<K extends string = DefaultBreakpoint> {
@@ -25,11 +27,14 @@ export interface UsageOptions<K extends string = DefaultBreakpoint> {
    * `frameImage({ override })`.
    */
   name?: string
-  /** Names the usage in the admin, e.g. 'Header image': the drawer's title. */
-  label?: string
+  /**
+   * Names the usage in the admin, e.g. 'Header image' or `{ en: 'Header image',
+   * de: 'Kopfbild' }`: the drawer's title.
+   */
+  label?: Label
   admin?: {
-    /** Shown under the usage's framing summary and in its drawer. */
-    description?: string
+    /** Shown under the usage's framing summary and in its drawer; a string or one per language. */
+    description?: Label
   }
   /** Field access for the usage's group. Default: the plugin's `access`. */
   access?: FramingAccess
@@ -100,8 +105,8 @@ const overrideGroup = (
             } satisfies Field,
           ]
         : []),
-      rectField('crop', 'Crop area'),
-      rectField('focusArea', 'Focus area'),
+      rectField('crop', fieldLabel('cropArea')),
+      rectField('focusArea', fieldLabel('focusArea')),
     ],
   }
 }

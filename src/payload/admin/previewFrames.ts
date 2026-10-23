@@ -18,15 +18,29 @@ import type { PreviewFrame } from './PreviewStrip.js'
 export const usagePreviewFrames = (
   rules: readonly FrameRule<string>[] | undefined,
   siblings: Record<string, unknown>,
-  breakpoints: readonly BreakpointInfo[] = DEFAULT_FRAMING.breakpoints,
+  {
+    breakpointLabel,
+    breakpoints = DEFAULT_FRAMING.breakpoints,
+    sameAs,
+  }: {
+    /** The breakpoint's name in the user's language. */
+    breakpointLabel: (breakpoint: BreakpointInfo) => string
+    breakpoints?: readonly BreakpointInfo[]
+    /** The note on a fallback preview, e.g. `same as Phones`. */
+    sameAs: (label: string) => string
+  },
 ): PreviewFrame[] => {
   const frames = matchFrames(rules, siblings)
   if (!frames) return []
-  const labels = new Map(breakpoints.map((breakpoint) => [breakpoint.name, breakpoint.label]))
+  const labels = new Map(
+    breakpoints.map((breakpoint) => [breakpoint.name, breakpointLabel(breakpoint)]),
+  )
   return resolveFrames({ breakpoints }, frames).map(({ breakpoint, fallbackFrom, frame }) => ({
     frame,
     key: breakpoint.name,
-    label: breakpoint.label,
-    ...(fallbackFrom ? { fallbackFrom, note: `same as ${labels.get(fallbackFrom)}` } : {}),
+    label: labels.get(breakpoint.name) ?? breakpoint.name,
+    ...(fallbackFrom
+      ? { fallbackFrom, note: sameAs(labels.get(fallbackFrom) ?? fallbackFrom) }
+      : {}),
   }))
 }

@@ -13,6 +13,7 @@ import React, { useEffect, useState } from 'react'
 
 import {
   type BreakpointInfo,
+  type Label,
   type FrameRule,
   FULL_RECT,
   isCompleteRect,
@@ -22,6 +23,7 @@ import {
 
 import { FramingCanvas } from './FramingCanvas.js'
 import { fieldAccess } from './permissions.js'
+import { RichText, useFramingTranslation } from './i18n.js'
 import { usagePreviewFrames } from './previewFrames.js'
 import { PreviewStrip } from './PreviewStrip.js'
 import { useRect } from './useRect.js'
@@ -42,9 +44,9 @@ export interface UsageFramingFieldProps {
   /** The breakpoints to preview, from the plugin's `framing` option. */
   breakpoints?: BreakpointInfo[]
   /** The usage's `label` option: the drawer's title. */
-  label?: string
+  label?: Label
   /** The usage's `admin.description`. */
-  description?: string
+  description?: Label
   /** Set by Payload, e.g. for a locked document. */
   readOnly?: boolean
   /** The upload collection the image comes from. */
@@ -108,6 +110,7 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
   const groupPath = path.replace(/\.[^.]+$/, '')
   // The editor is a UI field without access of its own: it follows its group's.
   const { docPermissions, id } = useDocumentInfo()
+  const { breakpointLabel, label: text, t } = useFramingTranslation()
   const blockTypes = useBlockTypes(groupPath)
   const access = fieldAccess(docPermissions, groupPath, {
     blockTypeAt: (rowPath) => blockTypes[rowPath],
@@ -153,7 +156,11 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
   const framing = media
     ? resolveFraming(media, { crop: cropField.stored, focusArea: focusField.stored })
     : null
-  const previewFrames = usagePreviewFrames(rules, siblings, breakpoints)
+  const previewFrames = usagePreviewFrames(rules, siblings, {
+    breakpointLabel,
+    breakpoints,
+    sameAs: (name) => t('sameAs', { label: name }),
+  })
 
   return (
     // Pulled up by half a field gap, so the row reads as part of the image above it.
@@ -169,31 +176,27 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
           onClick={() => openModal(drawerSlug)}
           size="small"
         >
-          {readOnly ? 'Show the framing here' : 'Adjust the framing here'}
+          {t(readOnly ? 'showHere' : 'adjustHere')}
         </Button>
         <span>
-          <strong>{custom ? 'Custom framing' : 'Default framing'}</strong>{' '}
+          <strong>{t(custom ? 'customFraming' : 'defaultFraming')}</strong>{' '}
           <span style={{ color: 'var(--theme-elevation-500)' }}>
-            {custom
-              ? 'Uses its own crop and focus area here.'
-              : 'Uses the crop and focus area set on the image.'}
+            {t(custom ? 'usesOwn' : 'usesImage')}
           </span>
         </span>
       </div>
       {description && (
         <p className="field-description" style={{ margin: '4px 0 0' }}>
-          {description}
+          {text(description)}
         </p>
       )}
 
-      <Drawer slug={drawerSlug} title={label ?? 'Framing for this usage'}>
+      <Drawer slug={drawerSlug} title={label ? text(label) : t('usageTitle')}>
         {/* Room below the buttons, so they don't sit on the window's edge when the drawer scrolls. */}
         <div data-image-framing-drawer style={{ paddingBottom: 48 }}>
-          {description && <p style={{ marginTop: 0 }}>{description}</p>}
+          {description && <p style={{ marginTop: 0 }}>{text(description)}</p>}
           <p style={{ color: 'var(--theme-elevation-500)', marginTop: 0 }}>
-            Set the crop and focus area for this usage only. The crop can be narrower or wider than
-            the one set on the image (dotted outline), up to the whole photo. The preview shows the
-            frames this usage shows the photo in, with the parts that text covers hatched.
+            <RichText text={t('usageIntro')} />
           </p>
           {media?.url && framing && mediaFraming ? (
             <>
@@ -218,7 +221,7 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
               />
             </>
           ) : (
-            <p>Loading the image…</p>
+            <p>{t('loadingImage')}</p>
           )}
           <div data-framing-actions style={{ display: 'flex', gap: 12, marginTop: 24 }}>
             <button
@@ -227,7 +230,7 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
               style={{ margin: 0 }}
               type="button"
             >
-              Done
+              {t('done')}
             </button>
             {!readOnly && (
               <button
@@ -239,7 +242,7 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
                 style={{ margin: 0 }}
                 type="button"
               >
-                Use the image&apos;s framing
+                {t('useImageFraming')}
               </button>
             )}
           </div>

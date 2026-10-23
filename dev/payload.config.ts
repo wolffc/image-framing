@@ -1,4 +1,6 @@
 import { sqliteAdapter } from '@payloadcms/db-sqlite'
+import { de } from '@payloadcms/translations/languages/de'
+import { en } from '@payloadcms/translations/languages/en'
 import { imageFramingPlugin } from '@wolffc/payload-image-framing'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -78,6 +80,8 @@ export default buildConfig({
       ],
     },
   ],
+  // English and German, the languages the plugin ships: switch in the account settings.
+  i18n: { supportedLanguages: { de, en } },
   db: sqliteAdapter({
     client: { url: process.env.DATABASE_URI || `file:${path.resolve(dirname, '.data/dev.db')}` },
   }),

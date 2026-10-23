@@ -36,3 +36,6 @@ package uses [Semantic Versioning](https://semver.org/).
   taken field names, usages on collections without framing and usages on
   polymorphic or `hasMany` upload fields. `CROP_ENDPOINT_PATH` is now
   `DEFAULT_ENDPOINT_PATH` (`'/crop'`).
+- Admin texts through Payload's i18n (`imageFraming` namespace), in English
+  and German; `translations` option to override texts or add languages.
+  Breakpoint, preview shape and usage labels take one string per language.

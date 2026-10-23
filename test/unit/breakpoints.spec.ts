@@ -11,6 +11,8 @@ import {
   type FrameRule,
   type Frames,
   frameVariable,
+  type Label,
+  labelText,
   resolveFrames,
 } from '../../src/core/index.js'
 import { frameImage } from '../../src/exports/server.js'
@@ -58,10 +60,10 @@ describe('defineFraming', () => {
     ])
   })
 
-  it('labels breakpoints without a label', () => {
+  it('leaves the label to the admin when there is none', () => {
     const framing = defineFraming({ breakpoints: { base: {}, xl: { minWidth: 1536 } } })
 
-    expect(framing.breakpoints.map((b) => b.label)).toEqual(['Base', 'xl (from 1536 px)'])
+    expect(framing.breakpoints.map((b) => b.label)).toEqual([undefined, undefined])
   })
 
   it('rejects configs it cannot turn into CSS', () => {
@@ -171,13 +173,26 @@ describe('frameImage with breakpoints', () => {
 })
 
 describe('usage drawer previews', () => {
+  const text = (language: string) => ({
+    breakpointLabel: (breakpoint: { label?: Label; name: string }) =>
+      breakpoint.label ? labelText(breakpoint.label, language) : breakpoint.name,
+    sameAs: (label: string) => `same as ${label}`,
+  })
+
   const rules: FrameRule<'base' | 'md' | 'lg'>[] = [
     { when: { layout: 'split' }, frames: { base: square } },
     { when: {}, frames: { base: square, md: wide } },
   ]
 
   it('shows one labelled preview per breakpoint and marks fallbacks', () => {
-    const previews = usagePreviewFrames(rules, { layout: 'wide' }, three.breakpoints)
+    const previews = usagePreviewFrames(
+      rules,
+      { layout: 'wide' },
+      {
+        ...text('en'),
+        breakpoints: three.breakpoints,
+      },
+    )
 
     expect(
       previews.map(({ fallbackFrom, key, label, note }) => [key, label, fallbackFrom, note]),
@@ -189,15 +204,24 @@ describe('usage drawer previews', () => {
   })
 
   it('shows one preview with only base', () => {
-    expect(usagePreviewFrames(rules, {}, baseOnly.breakpoints).map((p) => p.label)).toEqual([
-      'Everywhere',
-    ])
+    expect(
+      usagePreviewFrames(rules, {}, { ...text('en'), breakpoints: baseOnly.breakpoints }).map(
+        (p) => p.label,
+      ),
+    ).toEqual(['Everywhere'])
   })
 
-  it('keeps the previous labels without a framing config', () => {
-    expect(usagePreviewFrames(rules, { layout: 'split' }).map((p) => [p.label, p.note])).toEqual([
+  it('keeps the previous labels without a framing config, in English and German', () => {
+    const labels = (language: string) =>
+      usagePreviewFrames(rules, { layout: 'split' }, text(language)).map((p) => [p.label, p.note])
+
+    expect(labels('en')).toEqual([
       ['Phones', undefined],
       ['Desktop', 'same as Phones'],
+    ])
+    expect(labels('de')).toEqual([
+      ['Smartphones', undefined],
+      ['Desktop', 'same as Smartphones'],
     ])
   })
 })

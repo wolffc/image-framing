@@ -1,5 +1,7 @@
 import type { Field, FieldAccess, GroupField } from 'payload'
 
+import { fieldLabel, staticLabel } from './i18n.js'
+
 /** Field-level access for the fields the plugin adds (`crop`, `focusArea`, a usage's group). */
 export interface FramingAccess {
   create?: FieldAccess
@@ -11,7 +13,11 @@ export interface FramingAccess {
 export const MEDIA_FIELD_NAMES = ['framing', 'crop', 'focusArea'] as const
 
 /** A rect group (`x`, `y`, `width`, `height` in percent), edited through the framing editor. */
-export const rectField = (name: string, label: string, access?: FramingAccess): GroupField => ({
+export const rectField = (
+  name: string,
+  label: GroupField['label'],
+  access?: FramingAccess,
+): GroupField => ({
   name,
   type: 'group',
   label,
@@ -44,13 +50,14 @@ export const mediaFramingFields = ({
         {
           name: 'framing',
           type: 'ui',
-          label: 'Crop and focus area',
+          // UI fields take only static labels; the editor shows its own, translated.
+          label: staticLabel('cropAndFocusArea'),
           admin: { components: { Field: { clientProps: { previewShapes }, path: editorPath } } },
         } satisfies Field,
       ]
     : []),
-  rectField('crop', 'Crop area', access),
-  rectField('focusArea', 'Focus area', access),
+  rectField('crop', fieldLabel('cropArea'), access),
+  rectField('focusArea', fieldLabel('focusArea'), access),
 ]
 
 /**
