@@ -1,0 +1,55 @@
+name: Pages
+
+# The showcase page (site/): built and tested on every pull request and push
+# to main, deployed to https://wolffc.github.io/image-framing/ from main.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and test the showcase page
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm exec tsc --noEmit -p site/tsconfig.json
+      - run: pnpm site:build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright test -c site/playwright.config.ts
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: site-playwright-report
+          path: |
+            site/playwright-report/
+            site/test-results/
+          retention-days: 7
+      - uses: actions/upload-pages-artifact@v5
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: site/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

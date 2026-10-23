@@ -45,6 +45,8 @@ Everything runs in Docker; the host needs only Docker with the compose plugin.
 | `test/int/`          | Integration tests with focused Payload configs (SQLite, an S3 server)                                                           |                                                      |
 | `test/consumer/`     | A fresh Payload + Next app the pack test builds against the packed package                                                      |                                                      |
 | `examples/`          | Example apps and snippets                                                                                                       | the package by its name                              |
+| `site/`              | The showcase page on GitHub Pages: a Vite + React app with widgets that run `core`                                              | `core/` (from source)                                |
+| `docs/images/`       | Screenshots and diagrams for the README and the showcase page                                                                   |                                                      |
 | `scripts/`           | `pack-smoke.sh` (pack test), `build-examples.sh`                                                                                |                                                      |
 
 `test/unit/imageFramingBoundary.spec.ts` checks the import rules above and that every admin module starts with `'use client'`. `test/unit/publicApi.spec.ts` snapshots every exported name of every entry point, so a change to the public API shows up in review, and checks that each has a doc comment.
@@ -60,8 +62,15 @@ The entry points are `.` (the plugin), `./core` (browser-safe), `./server` (uses
 | `pnpm test:e2e`       | Playwright against the running dev app (`E2E_BASE_URL`, default `http://localhost:3000`)                                                                      | `dev/framing.e2e.spec.ts`                 |
 | `pnpm test:pack`      | Pack, install into scratch projects (one without Next or Payload), build a Payload + Next app with it                                                         | `scripts/pack-smoke.sh`, `test/consumer/` |
 | `pnpm build:examples` | Build and start every runnable example against the packed package                                                                                             | `scripts/build-examples.sh`               |
+| `./dev.sh test-site`  | Build the showcase page and run Playwright against it, on a desktop and a phone                                                                               | `site/e2e/`                               |
 
-CI (`.github/workflows/ci.yml`) runs on every pull request: lint, format check, typecheck, unit and SQLite integration tests and the build; unit tests on Node 20 and 22 too; the integration tests on SQLite, Postgres and MongoDB, each on the latest and the lowest supported Payload; the e2e tests; the cloud storage tests; the pack test on the latest and the lowest Payload; and the examples. A weekly workflow runs the tests against Payload's latest release.
+CI (`.github/workflows/ci.yml`) runs on every pull request: lint, format check, typecheck, unit and SQLite integration tests and the build; unit tests on Node 20 and 22 too; the integration tests on SQLite, Postgres and MongoDB, each on the latest and the lowest supported Payload; the e2e tests; the cloud storage tests; the pack test on the latest and the lowest Payload; and the examples. `.github/workflows/pages.yml` builds and tests the showcase page on every pull request and deploys it from `main`. A weekly workflow runs the tests against Payload's latest release.
+
+## The showcase page and screenshots
+
+`site/` is the page at <https://wolffc.github.io/image-framing/>. `./dev.sh site` serves it on <http://localhost:5173/image-framing/> with hot reload. Its widgets import `@wolffc80/payload-image-framing/core` from `src/core/`, so they always show the current algorithm. The sample photos in `site/public/photos/` are drawings made for the project (CC0).
+
+`./dev.sh screenshots` regenerates `docs/images/media-editor.png`, `usage-drawer.png` and `focus-editing.gif` from the dev app (`dev/screenshots.shot.ts`), with the sailboat drawing. Run it after a change to the admin UI.
 
 ## Pull requests
 

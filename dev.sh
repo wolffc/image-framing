@@ -8,6 +8,9 @@
 #   ./dev.sh test-int [db]  run the integration tests: sqlite (default), postgres or mongodb
 #   ./dev.sh test-s3        run the storage tests against an S3 server (adobe/s3mock)
 #   ./dev.sh test-e2e       run the Playwright tests against the dev app (starts it)
+#   ./dev.sh site           start the showcase page on http://localhost:5173/image-framing/
+#   ./dev.sh test-site      build the showcase page and run its Playwright tests
+#   ./dev.sh screenshots    regenerate docs/images from the dev app (starts it)
 #   ./dev.sh typecheck      run tsc on src/ and dev/
 #   ./dev.sh build          build the package into dist/
 #   ./dev.sh shell          open a shell in the dev container
@@ -37,7 +40,7 @@ cmd="${1:-help}"
 [[ $# -gt 0 ]] && shift
 
 case "$cmd" in
-  help|-h|--help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' ;;
+  help|-h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//' ;;
   build-image) compose build dev ;;
   install) ensure_image; run pnpm install "$@" ;;
   start)
@@ -70,6 +73,19 @@ case "$cmd" in
     echo "Waiting for the dev app…"
     run node -e "const until = Date.now() + 300000; (async () => { while (Date.now() < until) { try { const r = await fetch('http://framing-dev:3000/admin', { signal: AbortSignal.timeout(120000) }); if (r.ok) return } catch {} await new Promise((r) => setTimeout(r, 2000)) } process.exit(1) })()"
     compose --profile e2e run --rm e2e node_modules/.bin/playwright test "$@"
+    ;;
+  site)
+    ensure_deps
+    echo "Showcase: http://localhost:${SITE_PORT:-5173}/image-framing/"
+    compose run --rm -p "${SITE_PORT:-5173}:5173" dev pnpm site "$@"
+    ;;
+  test-site)
+    ensure_deps
+    run pnpm site:build
+    compose --profile e2e run --rm e2e node_modules/.bin/playwright test -c site/playwright.config.ts "$@"
+    ;;
+  screenshots)
+    "$0" test-e2e -c playwright.screenshots.config.ts "$@"
     ;;
   test-s3)
     ensure_deps

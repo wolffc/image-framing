@@ -6,6 +6,8 @@ Non-destructive crop and focus areas for [Payload CMS](https://payloadcms.com) u
 npm install @wolffc80/payload-image-framing
 ```
 
+**[Try it in your browser](https://wolffc.github.io/image-framing/)**: move a focus area and watch page heroes, shapes and breakpoints follow, run by the plugin's own code.
+
 ![The media editor: the crop area (solid frame), the focus area (dashed frame) and previews in common shapes](https://raw.githubusercontent.com/wolffc/image-framing/main/docs/images/media-editor.png)
 
 ![A usage's drawer: its own crop on the whole photo, the media's crop dotted, and previews of its frames with the parts text covers hatched](https://raw.githubusercontent.com/wolffc/image-framing/main/docs/images/usage-drawer.png)
