@@ -135,15 +135,18 @@ const { resource, style } = frameImage({
 import { matchFrames } from '@wolffc/payload-image-framing/core'
 import { FramedImage } from '@wolffc/payload-image-framing/next'
 
-;<FramedImage
-  media={page.header.image}
-  override={page.header.imageFraming}
-  framing={framing}
-  frames={matchFrames(headerFrames, page.header)}
-  secret={process.env.PAYLOAD_SECRET!}
-  sizes="100vw"
-  priority
-/>
+// A server component; `framing` and `headerFrames` as configured for the plugin.
+export const Header = ({ page }: { page: Page }) => (
+  <FramedImage
+    media={page.header.image}
+    override={page.header.imageFraming}
+    framing={framing}
+    frames={matchFrames(headerFrames, page.header)}
+    secret={process.env.PAYLOAD_SECRET!}
+    sizes="100vw"
+    priority
+  />
+)
 ```
 
 Other `next/image` props pass through; `boxClassName`/`boxStyle` style the box, `shaped={false}` leaves its size to you. Without `frames` it renders the cropped photo in its own shape.
