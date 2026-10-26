@@ -51,7 +51,8 @@ services:
     tmpfs: /var/lib/postgresql/data
 
   mongodb:
-    image: mongo:8
+    # Not 8: mongo 8 exits on Linux kernel 6.19+ (SERVER-121912).
+    image: mongo:7
     profiles: [db]
     tmpfs: /data/db
 
