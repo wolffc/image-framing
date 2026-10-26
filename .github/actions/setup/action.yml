@@ -17,6 +17,9 @@ runs:
     - uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node }}
+        # Without this, setup-node uses the runner's cached Node, which can lag
+        # behind a security release by weeks.
+        check-latest: true
         cache: pnpm
     - run: pnpm install --frozen-lockfile
       shell: bash

@@ -64,7 +64,7 @@ The entry points are `.` (the plugin), `./core` (browser-safe), `./server` (uses
 | `pnpm build:examples` | Build and start every runnable example against the packed package                                                                                             | `scripts/build-examples.sh`               |
 | `./dev.sh test-site`  | Build the showcase page and run Playwright against it, on a desktop and a phone                                                                               | `site/e2e/`                               |
 
-CI (`.github/workflows/ci.yml`) runs on every pull request: lint, format check, typecheck, unit and SQLite integration tests and the build; unit tests on Node 20 and 22 too; the integration tests on SQLite, Postgres and MongoDB, each on the latest and the lowest supported Payload; the e2e tests; the cloud storage tests; the pack test on the latest and the lowest Payload; and the examples. `.github/workflows/pages.yml` builds and tests the showcase page on every pull request and deploys it from `main`. A weekly workflow runs the tests against Payload's latest release.
+CI (`.github/workflows/ci.yml`) runs on every pull request: lint, format check, typecheck, unit and SQLite integration tests and the build; unit tests on Node 22 and 26 too; the integration tests on SQLite, Postgres and MongoDB, each on the latest and the lowest supported Payload; the e2e tests; the cloud storage tests; the pack test on the latest and the lowest Payload; and the examples. `.github/workflows/pages.yml` builds and tests the showcase page on every pull request and deploys it from `main`. A weekly workflow runs the tests against Payload's latest release.
 
 ## The showcase page and screenshots
 
