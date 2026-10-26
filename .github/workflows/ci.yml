@@ -39,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20, 22]
+        node: [22, 26]
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
@@ -149,8 +149,8 @@ jobs:
         include:
           - name: latest Payload, Node 24
             node: 24
-          - name: lowest Payload, Node 20
-            node: 20
+          - name: lowest Payload, Node 22
+            node: 22
             lowest: true
     steps:
       - uses: actions/checkout@v7

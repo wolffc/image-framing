@@ -35,7 +35,7 @@ Payload's built-in crop overwrites the uploaded file, so a crop can't be undone 
 - Payload `^3.39.0`, with `sharp` in the Payload config: the plugin crops and resizes with Payload's sharp and doesn't install its own. Localized usages need Payload 3.80 or later (see [Limitations](#limitations)).
 - Any Payload database adapter: Postgres, SQLite and MongoDB are tested.
 - React 19. Next.js 15.2.3 or later or 16 for the admin panel; for the site, Next.js is optional: `frameImage` runs on any server.
-- Node.js 20.18.1 or later. TypeScript 5.4 or later, if you use the types.
+- Node.js 22.23.4 or later on 22, or 24.22.1 or later. TypeScript 5.4 or later, if you use the types.
 
 ## Install
 
