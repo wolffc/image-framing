@@ -4,6 +4,12 @@ All notable changes to `@wolffc80/payload-image-framing` are listed here. The
 format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 package uses [Semantic Versioning](https://semver.org/).
 
+## 2.0.0
+
+### Major Changes
+
+- d5c0db6: Require Node.js 22 (22.23.4 or later) or 24.22.1 or later (`engines.node` is now `^22.23.4 || >=24.22.1`). Node.js 20 reached end of life on 30 April 2026 and did not get the fixes from the October 2026 Node.js security release; the minimums are the first 22 and 24 releases with those fixes.
+
 ## 1.0.0
 
 ### Major Changes
