@@ -129,6 +129,22 @@ test.describe('Image framing', () => {
 
     const usage = page.locator('[data-image-framing-usage]').first()
     await expect(usage).toContainText('Default framing')
+
+    // Small previews next to the status line, one per breakpoint, from a
+    // generated size of the crop area instead of the original.
+    const summary = usage.locator('[data-framing-preview-strip="compact"]')
+    await expect(summary.locator('[data-framing-preview]')).toHaveCount(3)
+    await expect(summary.locator('[data-framing-preview="md"] [data-cover="left"]')).toBeVisible()
+    await expect(summary.locator('[data-framing-preview="base"] img')).toHaveAttribute(
+      'src',
+      /\/api\/media\/file\/.+-\d+x\d+\./,
+    )
+    const placements = () =>
+      summary
+        .locator('img')
+        .evaluateAll((images) => images.map((img) => img.getAttribute('style')).join('|'))
+    const before = await placements()
+
     await usage.getByRole('button', { name: 'Crop differently for the hero' }).click()
 
     const drawer = page.locator('[data-image-framing-drawer]')
@@ -141,6 +157,8 @@ test.describe('Image framing', () => {
     await enter(drawer.locator('[data-framing-input="crop.width"]'), '50')
     await drawer.getByRole('button', { name: 'Done' }).click()
     await expect(usage).toContainText('Custom framing')
+    // The previews next to the status line follow before saving.
+    await expect.poll(placements).not.toBe(before)
     await save(page)
 
     for (const viewport of viewports) {

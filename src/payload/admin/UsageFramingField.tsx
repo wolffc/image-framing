@@ -20,6 +20,7 @@ import {
   isFramable,
   resolveFraming,
   type StoredRect,
+  visibleRect,
 } from '../../core/index.js'
 
 import { FramingCanvas } from './FramingCanvas.js'
@@ -27,7 +28,8 @@ import { fieldAccess } from './permissions.js'
 import type { UsageTextKey } from '../../translations/index.js'
 import { RichText, useFramingTranslation } from './i18n.js'
 import { usagePreviewFrames } from './previewFrames.js'
-import { PreviewStrip } from './PreviewStrip.js'
+import { previewImage, type PreviewSize } from './previewImage.js'
+import { PREVIEW_HEIGHT, PreviewStrip } from './PreviewStrip.js'
 import { useRect } from './useRect.js'
 
 interface MediaDoc {
@@ -37,6 +39,7 @@ interface MediaDoc {
   focusArea?: StoredRect
   height?: number | null
   mimeType?: string | null
+  sizes?: Record<string, PreviewSize | null | undefined> | null
   url?: string | null
   width?: number | null
 }
@@ -180,6 +183,22 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
     breakpoints,
     sameAs: (name) => t('sameAs', { label: name }),
   })
+  const image = { height: media?.height ?? 0, width: media?.width ?? 0 }
+  // The small previews next to the status line load a generated size where one fits.
+  const summarySource =
+    media?.url && framing && mediaFraming && image.width && image.height
+      ? previewImage({
+          image,
+          mediaCrop: mediaFraming.crop,
+          sizes: media.sizes,
+          previews: previewFrames.map(({ frame }) => ({
+            visible: visibleRect({ ...frame, crop: framing.crop, focus: framing.focus, image }),
+            // Twice the preview's width, for sharp high-density screens.
+            width: 2 * PREVIEW_HEIGHT.compact * frame.aspect,
+          })),
+          url: media.url,
+        })
+      : null
 
   return (
     // Pulled up by half a field gap, so the row reads as part of the image above it.
@@ -203,6 +222,17 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
             {usageText(custom ? 'usesOwn' : 'usesImage')}
           </span>
         </span>
+        {summarySource && framing && (
+          <PreviewStrip
+            compact
+            crop={framing.crop}
+            focus={framing.focus}
+            frames={previewFrames}
+            image={image}
+            region={summarySource.region}
+            url={summarySource.url}
+          />
+        )}
       </div>
       {description && (
         <p className="field-description" style={{ margin: '4px 0 0' }}>
@@ -235,7 +265,7 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
                 crop={framing.crop}
                 focus={framing.focus}
                 frames={previewFrames}
-                image={{ height: media.height ?? 0, width: media.width ?? 0 }}
+                image={image}
                 url={media.url}
               />
             </>

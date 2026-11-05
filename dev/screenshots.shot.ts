@@ -150,7 +150,7 @@ test('usage drawer', async ({ page }) => {
   await page
     .locator('[data-image-framing-usage]')
     .first()
-    .getByRole('button', { name: /adjust the framing/i })
+    .getByRole('button', { name: 'Crop differently for the hero' })
     .click()
   const drawer = page.locator('[data-image-framing-drawer]')
   await expect(drawer).toBeVisible()
