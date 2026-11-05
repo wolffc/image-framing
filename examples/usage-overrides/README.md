@@ -12,7 +12,9 @@ npx payload generate:importmap
 npm run dev
 ```
 
-In the admin, a page's header image shows **Adjust the framing here**. The
+In the admin, a page's header image shows small previews of its frames, one
+per breakpoint, next to its status line, and a button, **Crop differently for
+the header**. The previews follow the crop and the layout before you save. The
 drawer edits this usage's crop on the whole photo (the media's crop dotted) and
 previews it in the header's frames, phones and desktop, with the covered part
 hatched. Switch the header's layout and the preview follows.
@@ -22,5 +24,9 @@ hatched. Switch the header's layout and the preview follows.
   the page (rendering, `matchFrames`) share them.
 - `usages` in `payload.config.ts` names the upload fields by path:
   `<collection or global>.<field path>`, or `block:<block slug>.<field path>`.
+- A usage can set its own texts for its summary and drawer with
+  `admin.texts`, as the header does for its button and status line; a string,
+  or one per language. The CTA block and the logo keep the plugin's texts
+  (**Adjust the framing here**).
 - Each usage stores its override in an `imageFraming` group next to the upload
   field; pass it to `<FramedImage override={…}>` or `frameImage`.
