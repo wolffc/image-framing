@@ -12,12 +12,12 @@ npx payload generate:importmap
 npm run dev
 ```
 
-In the admin, a page's header image shows small previews of its frames, one
-per breakpoint, next to its status line, and a button, **Crop differently for
-the header**. The previews follow the crop and the layout before you save. The
-drawer edits this usage's crop on the whole photo (the media's crop dotted) and
-previews it in the header's frames, phones and desktop, with the covered part
-hatched. Switch the header's layout and the preview follows.
+In the admin, once a page's header has an image, its status line shows a
+button, **Crop differently for the header**, and small previews of the
+header's frames, one per breakpoint; they follow the crop and the layout
+before you save. The button opens a drawer that edits this usage's crop on
+the whole photo (the media's crop dotted) and previews it in the header's
+frames, phones and desktop, with the covered part hatched. Switch the header's layout and the preview follows.
 
 - `frames.ts` has the frame rules: the first rule whose `when` matches the
   fields next to the image picks the frames. The plugin (admin preview) and
