@@ -566,6 +566,28 @@ describe('imageFramingPlugin options', () => {
     expect(clientProps(editor)).toMatchObject({ label: 'Hero image', description: 'Shown on top.' })
   })
 
+  it("hands the usage's own texts to the usage editor", () => {
+    const texts = {
+      adjustHere: 'Crop differently for the hero',
+      usesOwn: { en: 'Own crop for the hero.', de: 'Eigener Zuschnitt für den Kopfbereich.' },
+    }
+    const result = run({ usages: { 'pages.hero.media': { admin: { texts } } } })
+    const editor = field(heroFields(result), 'imageFraming').fields.find(
+      (f) => 'name' in f && f.name === 'editor',
+    )!
+
+    expect(clientProps(editor)).toMatchObject({ texts })
+  })
+
+  it('passes no texts for a usage without its own', () => {
+    const result = run({ usages: { 'pages.hero.media': {} } })
+    const editor = field(heroFields(result), 'imageFraming').fields.find(
+      (f) => 'name' in f && f.name === 'editor',
+    )!
+
+    expect(clientProps(editor)).not.toHaveProperty('texts')
+  })
+
   it('fails for a usage whose upload field points to a collection without framing', () => {
     const base = config()
     base.collections!.push({ slug: 'docs', upload: { staticDir: '/tmp/docs' }, fields: [] })

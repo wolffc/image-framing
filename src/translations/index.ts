@@ -85,6 +85,20 @@ const de: Record<ImageFramingTranslationKey, string> = {
   width: 'Breite',
 }
 
+/**
+ * The texts of a usage's summary and drawer, which one usage can set for itself
+ * with its `admin.texts` option, e.g. a button that names the usage.
+ */
+export type UsageTextKey =
+  | 'adjustHere'
+  | 'customFraming'
+  | 'defaultFraming'
+  | 'showHere'
+  | 'usageIntro'
+  | 'usesImage'
+  | 'usesOwn'
+  | 'useImageFraming'
+
 /** Texts per language: all keys for a full language, some to override single texts. */
 export type ImageFramingTranslations = Partial<
   Record<string, Partial<Record<ImageFramingTranslationKey, string>>>

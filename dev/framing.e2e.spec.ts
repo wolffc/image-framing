@@ -129,7 +129,7 @@ test.describe('Image framing', () => {
 
     const usage = page.locator('[data-image-framing-usage]').first()
     await expect(usage).toContainText('Default framing')
-    await usage.getByRole('button', { name: /adjust the framing/i }).click()
+    await usage.getByRole('button', { name: 'Crop differently for the hero' }).click()
 
     const drawer = page.locator('[data-image-framing-drawer]')
     await expect(drawer).toBeVisible()
@@ -162,7 +162,7 @@ test.describe('Image framing', () => {
     await page
       .locator('[data-image-framing-usage]')
       .first()
-      .getByRole('button', { name: /adjust the framing/i })
+      .getByRole('button', { name: 'Crop differently for the hero' })
       .click()
     const drawer = page.locator('[data-image-framing-drawer]')
     await expect(drawer).toBeVisible()

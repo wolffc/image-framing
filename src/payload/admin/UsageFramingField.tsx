@@ -24,6 +24,7 @@ import {
 
 import { FramingCanvas } from './FramingCanvas.js'
 import { fieldAccess } from './permissions.js'
+import type { UsageTextKey } from '../../translations/index.js'
 import { RichText, useFramingTranslation } from './i18n.js'
 import { usagePreviewFrames } from './previewFrames.js'
 import { PreviewStrip } from './PreviewStrip.js'
@@ -50,6 +51,8 @@ export interface UsageFramingFieldProps {
   label?: Label
   /** The usage's `admin.description`. */
   description?: Label
+  /** The usage's `admin.texts`: its own texts, over the plugin's. */
+  texts?: Partial<Record<UsageTextKey, Label>>
   /** Set by Payload, e.g. for a locked document. */
   readOnly?: boolean
   /** The upload collection the image comes from. */
@@ -108,12 +111,18 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
   path = '',
   readOnly: readOnlyProp = false,
   relationTo,
+  texts,
   uploadField,
 }) => {
   const groupPath = path.replace(/\.[^.]+$/, '')
   // The editor is a UI field without access of its own: it follows its group's.
   const { docPermissions, id } = useDocumentInfo()
   const { breakpointLabel, label: text, t } = useFramingTranslation()
+  const own = texts ?? {}
+  const usageText = (name: UsageTextKey) => {
+    const value = own[name]
+    return value ? text(value) : t(name)
+  }
   const blockTypes = useBlockTypes(groupPath)
   const access = fieldAccess(docPermissions, groupPath, {
     blockTypeAt: (rowPath) => blockTypes[rowPath],
@@ -186,12 +195,12 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
           onClick={() => openModal(drawerSlug)}
           size="small"
         >
-          {t(readOnly ? 'showHere' : 'adjustHere')}
+          {usageText(readOnly ? 'showHere' : 'adjustHere')}
         </Button>
         <span>
-          <strong>{t(custom ? 'customFraming' : 'defaultFraming')}</strong>{' '}
+          <strong>{usageText(custom ? 'customFraming' : 'defaultFraming')}</strong>{' '}
           <span style={{ color: 'var(--theme-elevation-500)' }}>
-            {t(custom ? 'usesOwn' : 'usesImage')}
+            {usageText(custom ? 'usesOwn' : 'usesImage')}
           </span>
         </span>
       </div>
@@ -206,7 +215,7 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
         <div data-image-framing-drawer style={{ paddingBottom: 48 }}>
           {description && <p style={{ marginTop: 0 }}>{text(description)}</p>}
           <p style={{ color: 'var(--theme-elevation-500)', marginTop: 0 }}>
-            <RichText text={t('usageIntro')} />
+            <RichText text={usageText('usageIntro')} />
           </p>
           {media?.url && framing && mediaFraming ? (
             <>
@@ -252,7 +261,7 @@ export const UsageFramingField: React.FC<UsageFramingFieldProps> = ({
                 style={{ margin: 0 }}
                 type="button"
               >
-                {t('useImageFraming')}
+                {usageText('useImageFraming')}
               </button>
             )}
           </div>
