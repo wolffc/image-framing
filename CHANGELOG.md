@@ -4,6 +4,12 @@ All notable changes to `@wolffc80/payload-image-framing` are listed here. The
 format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 package uses [Semantic Versioning](https://semver.org/).
 
+## 2.1.0
+
+### Minor Changes
+
+- 20efca1: New usage option `admin.texts`: a usage can set its own texts for its summary and drawer (the button, the status line, the drawer's intro and the reset button), as a string or one per language, e.g. a button that says "Crop differently for the hero". Usages without it keep the plugin's texts.
+
 ## 2.0.0
 
 ### Major Changes
