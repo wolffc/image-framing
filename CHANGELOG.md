@@ -4,6 +4,12 @@ All notable changes to `@wolffc80/payload-image-framing` are listed here. The
 format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 package uses [Semantic Versioning](https://semver.org/).
 
+## 2.2.0
+
+### Minor Changes
+
+- 6f2490b: A usage's status line now shows small previews of its frames, one per breakpoint, next to "Crop differently here", so editors see how the photo is framed on each screen without opening the drawer. They follow the crop and the sibling fields (e.g. the layout) before saving, and load a generated size of the photo instead of the original where one shows the right part. `PreviewStrip` takes `compact` for these small previews and `region` for a file that shows only part of the original.
+
 ## 2.1.0
 
 ### Minor Changes
