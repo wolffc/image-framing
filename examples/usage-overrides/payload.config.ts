@@ -66,7 +66,17 @@ export default buildConfig({
       collections: ['media'],
       usages: {
         // <collection>.<field path>: an image in a group
-        'pages.header.image': { frames: headerFrames, label: 'Header image' },
+        // admin.texts: this usage's own button and status line; the other texts are the plugin's.
+        'pages.header.image': {
+          admin: {
+            texts: {
+              adjustHere: 'Crop differently for the header',
+              usesOwn: 'The header uses its own crop.',
+            },
+          },
+          frames: headerFrames,
+          label: 'Header image',
+        },
         // block:<block slug>.<field path>: an image in a block, wherever the block is used
         'block:cta.image': { frames: ctaFrames },
         // <global>.<field path>

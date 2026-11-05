@@ -3,7 +3,7 @@
 | Example                                      | What                                                                                                        | Kind         |
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------ |
 | [quick-start](quick-start)                   | One media collection, a page showing the photos with `<FramedImage>`                                        | Runnable app |
-| [usage-overrides](usage-overrides)           | Frame rules by a layout select, cover areas, a block and a global with their own crops                      | Runnable app |
+| [usage-overrides](usage-overrides)           | Frame rules by a layout select, cover areas, a block and a global with their own crops, a usage's own texts | Runnable app |
 | [breakpoints](breakpoints)                   | Phone, tablet and desktop from one `defineFraming`, applied with plain CSS                                  | Runnable app |
 | [existing-project](existing-project)         | Adding the plugin to a project with media: what changes, migrations, backfill and size regeneration scripts | Runnable app |
 | [cloud-storage](cloud-storage)               | `@payloadcms/storage-s3` (S3, R2, MinIO) with `s3FramingStorage`                                            | Snippet      |
@@ -12,9 +12,9 @@
 | [headless](headless)                         | REST and GraphQL clients with the usage option `expose`                                                     | Snippet      |
 
 The runnable apps are small Payload + Next projects using SQLite: copy one,
-then `cp .env.example .env && npm install && npm run dev`. Until the package's
-first release on npm, `npm install` can't find it: build the package
-(`pnpm build && pnpm pack`) and install the tarball instead
+then `cp .env.example .env && npm install && npm run dev`. They install the
+package's latest release from npm. To try changes that aren't released yet,
+build the package (`pnpm build && pnpm pack`) and install the tarball instead
 (`npm install /path/to/wolffc80-payload-image-framing-*.tgz`). CI builds each of
 them against the packed package (`pnpm build:examples`). The repository's
 [dev app](../dev) shows everything together.

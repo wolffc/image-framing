@@ -53,6 +53,7 @@ export const PreviewStrip: React.FC<{
   url: string
   /** The part of the original photo the file at `url` shows. Default: all of it. */
   region?: Rect
+  /** Small previews without a heading, as next to a usage's status line. Default: `false`. */
   compact?: boolean
 }> = ({ compact = false, crop, focus, frames, image, region = FULL_RECT, url }) => {
   const { t } = useFramingTranslation()

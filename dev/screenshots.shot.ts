@@ -145,6 +145,14 @@ test('moving the focus area (GIF)', async ({ page }) => {
   await writeGif(frames, out('focus-editing.gif'), 680)
 })
 
+test('usage status line', async ({ page }) => {
+  await open(page, `/admin/collections/pages/${pageId}`)
+  const usage = page.locator('[data-image-framing-usage]').first()
+  await expect(usage).toBeVisible()
+  await loaded(usage)
+  await usage.screenshot({ path: out('usage-summary.png') })
+})
+
 test('usage drawer', async ({ page }) => {
   await open(page, `/admin/collections/pages/${pageId}`)
   await page
