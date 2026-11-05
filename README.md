@@ -136,14 +136,15 @@ Every option is optional except `collections`; the defaults are the behaviour wi
 
 `UsageOptions`, per entry in `usages`:
 
-| Option              | Type                                 | Default                  | Description                                                                                                                                  |
-| ------------------- | ------------------------------------ | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `frames`            | `FrameRule[]`                        | `[]`                     | The frames the usage shows the photo in, per breakpoint: the first rule whose `when` matches the fields next to the image. For the previews. |
-| `name`              | `string`                             | `'imageFraming'`         | Name of the group next to the upload field that stores the usage's crop and focus area.                                                      |
-| `label`             | `string` or `{ [language]: string }` | 'Framing for this usage' | Title of the usage's drawer.                                                                                                                 |
-| `admin.description` | `string` or `{ [language]: string }` | none                     | Shown under the usage's framing summary and in its drawer.                                                                                   |
-| `expose`            | `boolean` or `{ name?: string }`     | `false`                  | Adds a virtual field with the computed framing, for headless frontends (see [Rendering](#rendering)).                                        |
-| `access`            | `{ create?, read?, update? }`        | the plugin's `access`    | Field access for the usage's group.                                                                                                          |
+| Option              | Type                                          | Default                  | Description                                                                                                                                                                                                                      |
+| ------------------- | --------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `frames`            | `FrameRule[]`                                 | `[]`                     | The frames the usage shows the photo in, per breakpoint: the first rule whose `when` matches the fields next to the image. For the previews.                                                                                     |
+| `name`              | `string`                                      | `'imageFraming'`         | Name of the group next to the upload field that stores the usage's crop and focus area.                                                                                                                                          |
+| `label`             | `string` or `{ [language]: string }`          | 'Framing for this usage' | Title of the usage's drawer.                                                                                                                                                                                                     |
+| `admin.description` | `string` or `{ [language]: string }`          | none                     | Shown under the usage's framing summary and in its drawer.                                                                                                                                                                       |
+| `admin.texts`       | `{ [key]: string or { [language]: string } }` | the plugin's texts       | This usage's own texts for its summary and drawer, by key: `adjustHere`, `showHere`, `defaultFraming`, `customFraming`, `usesImage`, `usesOwn`, `usageIntro`, `useImageFraming` (see [Admin translations](#admin-translations)). |
+| `expose`            | `boolean` or `{ name?: string }`              | `false`                  | Adds a virtual field with the computed framing, for headless frontends (see [Rendering](#rendering)).                                                                                                                            |
+| `access`            | `{ create?, read?, update? }`                 | the plugin's `access`    | Field access for the usage's group.                                                                                                                                                                                              |
 
 The plugin checks its configuration at startup and throws with the reason when a collection in `collections` doesn't exist or isn't an upload collection; a framed collection already has a field named `framing`, `crop` or `focusArea` (the media fields can't be renamed, since `frameImage` reads them); a usage's group name is taken on its level; a usage path matches no upload field, or one with several `relationTo` collections, `hasMany`, or a collection without framing; a frame rule names an undefined breakpoint; or `sharp` or the secret is missing.
 
@@ -342,7 +343,17 @@ imageFramingPlugin({
 })
 ```
 
-Texts in your config's own `i18n.translations` under `imageFraming` win over the option. A supported language without texts of its own gets the English ones. Labels you pass in (breakpoints, preview shapes, a usage's `label` and `admin.description`) take a string or one per language, like Payload's labels.
+Texts in your config's own `i18n.translations` under `imageFraming` win over the option. A supported language without texts of its own gets the English ones. Labels you pass in (breakpoints, preview shapes, a usage's `label`, `admin.description` and `admin.texts`) take a string or one per language, like Payload's labels.
+
+A usage's `admin.texts` set the texts of its summary and drawer for that usage only, over everything above, for example a button that says where the crop applies:
+
+```ts
+usages: {
+  'pages.hero.image': {
+    admin: { texts: { adjustHere: 'Crop differently for the hero', usesOwn: 'Own crop for the hero.' } },
+  },
+},
+```
 
 ## Limitations
 

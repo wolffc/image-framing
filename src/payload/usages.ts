@@ -22,6 +22,7 @@ import {
 } from '../core/index.js'
 
 import { type FrameableMedia, frameImage } from '../server/frameImage.js'
+import type { UsageTextKey } from '../translations/index.js'
 
 import { dataNames, type FramingAccess, rectField } from './fields.js'
 import { fieldLabel } from './i18n.js'
@@ -47,6 +48,12 @@ export interface UsageOptions<K extends string = DefaultBreakpoint> {
   admin?: {
     /** Shown under the usage's framing summary and in its drawer; a string or one per language. */
     description?: Label
+    /**
+     * This usage's own texts for its summary and drawer, over the plugin's
+     * texts, e.g. `{ adjustHere: 'Crop differently for the hero' }`; each a
+     * string or one per language.
+     */
+    texts?: Partial<Record<UsageTextKey, Label>>
   }
   /** Field access for the usage's group. Default: the plugin's `access`. */
   access?: FramingAccess
@@ -177,6 +184,7 @@ const overrideGroup = (
                     clientProps: {
                       breakpoints: framing.breakpoints,
                       description: usage.admin?.description,
+                      ...(usage.admin?.texts ? { texts: usage.admin.texts } : {}),
                       frames: usage.frames ?? [],
                       label: usage.label,
                       relationTo,

@@ -108,7 +108,19 @@ export default buildConfig({
       framing,
       usages: {
         // expose: the REST and GraphQL API return `hero.imageFramed` (for headless frontends).
-        'pages.hero.image': { expose: true, frames: heroFrames },
+        // admin.texts: the hero's button names it; the other texts are the plugin's.
+        'pages.hero.image': {
+          admin: {
+            texts: {
+              adjustHere: {
+                en: 'Crop differently for the hero',
+                de: 'Für den Kopfbereich anders zuschneiden',
+              },
+            },
+          },
+          expose: true,
+          frames: heroFrames,
+        },
         'block:card.image': { frames: cardFrames },
         'pages.gallery.image': { frames: cardFrames },
         'pages.social.image': { frames: [{ when: {}, frames: { base: { aspect: 1200 / 630 } } }] },
