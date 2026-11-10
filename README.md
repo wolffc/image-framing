@@ -306,6 +306,18 @@ So `og` images, admin thumbnails and anything else that reads `doc.sizes` show t
 - The route derives from the media `url`, so another collection slug, `routes.api` or an absolute `serverURL` need no options. For media whose `url` points elsewhere (e.g. straight to a bucket), pass `routePrefix: '/api/media/crop'` to `frameImage`; for another origin, `baseUrl`.
 - SVGs and other files that aren't raster images get no cropped copy.
 
+### Search engines and `robots.txt`
+
+If your `robots.txt` blocks `/api/` (common, to keep crawlers off the Payload API), search engines can't fetch the cropped images either, so they won't be indexed. Allow the crop route explicitly:
+
+```
+User-agent: *
+Disallow: /api/
+Allow: /api/media/crop/
+```
+
+The more specific `Allow` wins over the broader `Disallow` for Google and Bing. Use your own route if it differs: `/<routes.api>/<collection>/crop/`, or the `routePrefix` you pass to `frameImage`. Crawlers that only honor the original `robots.txt` standard (first match wins) need the `Allow` line placed before the `Disallow`.
+
 ## Storage
 
 By default the plugin reads originals from, and writes rebuilt sizes and cropped copies (in `.crops/`) to, the collection's `staticDir`.
