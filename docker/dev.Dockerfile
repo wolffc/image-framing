@@ -2,7 +2,7 @@
 # the host; node_modules and the pnpm store live in Docker volumes, so the
 # host needs only Docker.
 # Pinned to a patch release so the version is explicit; Dependabot bumps it.
-FROM node:24.22.1-bookworm-slim
+FROM node:24.22.2-bookworm-slim
 
 ENV PNPM_HOME=/pnpm \
     npm_config_store_dir=/pnpm/store \
